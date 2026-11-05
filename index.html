@@ -14,7 +14,7 @@
 *{box-sizing:border-box}body{margin:0;font-family:system-ui,Segoe UI,Roboto,sans-serif;background:var(--bg);color:var(--tx)}
 header{background:var(--pri);color:#fff;padding:12px 16px;display:flex;justify-content:space-between;align-items:center}
 header h1{font-size:18px;margin:0}#status{font-size:12px;opacity:.9}
-nav{display:flex;background:var(--card);border-bottom:1px solid var(--bd)}nav button{flex:1;padding:12px 4px;border:0;background:none;color:var(--mut);font-size:14px}
+nav{display:flex;background:var(--card);border-bottom:1px solid var(--bd)}nav button{flex:1;padding:12px 2px;border:0;background:none;color:var(--mut);font-size:14px}
 nav button.on{color:var(--pri);border-bottom:3px solid var(--pri);font-weight:600}
 main{max-width:640px;margin:0 auto;padding:16px}.card{background:var(--card);border:1px solid var(--bd);border-radius:12px;padding:16px;margin-bottom:16px}
 .grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
@@ -61,7 +61,7 @@ dialog{border:0;border-radius:12px;width:min(92vw,420px);background:var(--card);
 <body>
 <header><h1>⏱ Arbeitszeit</h1><span id="status">lokal</span></header>
 <nav id="nav">
- <button data-t="erf" class="on">Erfassen</button><button data-t="ein">Einträge</button><button data-t="aus">Auswertung</button><button data-t="set">Einstellungen</button>
+ <button data-t="erf" class="on">Erfassen</button><button data-t="ein">Einträge</button><button data-t="aus">Auswertung</button><button data-t="lnk">Links</button><button data-t="set">Einstellungen</button>
 </nav>
 <main>
  <section id="erf">
@@ -85,11 +85,19 @@ dialog{border:0;border-radius:12px;width:min(92vw,420px);background:var(--card);
   <button class="btn sec" style="width:100%" onclick="listDays+=28;render()">Ältere Tage anzeigen</button>
  </section>
  <section id="aus" hidden>
-  <div class="seg"><button data-p="w">Woche</button><button data-p="m">Monat</button><button data-p="h">Halbjahr</button><button data-p="y">Jahr</button><button data-p="s">Schuljahr</button></div>
+  <div class="seg"><button data-p="d">Tag</button><button data-p="w">Woche</button><button data-p="m">Monat</button><button data-p="h">Halbjahr</button><button data-p="y">Jahr</button><button data-p="s">Schuljahr</button></div>
   <div class="pnav"><button class="btn sec" onclick="per.o--;render()">◀</button><b id="plabel"></b><button class="btn sec" onclick="per.o++;render()">▶</button></div>
   <div class="card" id="saldo"></div>
+  <div class="card" id="tline"></div>
   <div class="card" id="stats"></div>
   <button class="btn sec" onclick="csv()">Als CSV (Excel) exportieren</button>
+ </section>
+ <section id="lnk" hidden>
+  <div class="card"><b>Links</b><div class="hint">Öffnen in einem neuen Fenster.</div><div id="linklist" style="margin-top:8px"></div></div>
+  <div class="card"><b>Link hinzufügen</b>
+   <label>Name</label><input id="lname" placeholder="z. B. Stundenplan">
+   <label>Adresse</label><input id="lurl" type="url" inputmode="url" placeholder="https://…">
+   <button type="button" class="btn" style="width:100%;margin-top:10px" onclick="addLink()">Speichern</button></div>
  </section>
  <section id="set" hidden>
   <div class="card">
@@ -127,8 +135,11 @@ dialog{border:0;border-radius:12px;width:min(92vw,420px);background:var(--card);
   <div class="card">
    <b>Freie Tage und Erfassungsbeginn</b>
    <label>Erfassung ab Datum</label><input type="date" id="sdate">
-   <label>Zusätzliche freie Tage: bewegliche Ferientage, pädagogische Tage – oder Ferien von Hand, falls der Abgleich ausfällt (ein Zeitraum je Zeile, z. B. 2027-05-14 oder 2026-10-13 bis 2026-10-24)</label>
-   <textarea id="free" rows="6"></textarea>
+   <label>Zusätzliche freie Tage</label>
+   <div class="hint" style="margin-top:0">Bewegliche Ferientage, pädagogische Tage – oder Ferien von Hand, falls das Laden ausfällt. Für einen einzelnen Tag „bis“ leer lassen.</div>
+   <div id="freelist"></div>
+   <div class="per" style="grid-template-columns:auto 1fr;margin-top:10px"><span>von</span><input type="date" id="ffrom"><span>bis</span><input type="date" id="fto"></div>
+   <button type="button" class="btn sec" style="width:100%;margin-top:8px" onclick="addFree()">+ Freien Tag / Zeitraum hinzufügen</button>
    <div class="hint">Gesetzliche Feiertage in Sachsen-Anhalt werden automatisch berücksichtigt.</div>
   </div>
   <button class="btn" onclick="saveSettings()">Einstellungen speichern</button>
@@ -166,7 +177,7 @@ dialog{border:0;border-radius:12px;width:min(92vw,420px);background:var(--card);
 <script>
 /* ===== Konfiguration: hier die Anwendungs-ID aus dem Azure-Portal eintragen ===== */
 const CLIENT_ID = "676671418561-u8sq0lmimfsnqa1oqno6vl92d0d1imcj.apps.googleusercontent.com";   // Google OAuth-Client-ID (…apps.googleusercontent.com)
-const VERSION = "0.9";
+const VERSION = "1.0";
 
 const CATS = {U:"Unterricht", V:"Vorbereitung", K:"Korrekturen", KF:"Konferenz", E:"Elternarbeit", O:"Organisation/Sonstiges", S:"Präsenz in der Schule"};
 const LABEL = {...CATS, P:"Pause (zählt nicht)", TT:"Unterricht (Stundenplan)"};
@@ -408,6 +419,49 @@ function sickDays(from, to){
   let n = 0; eachDay(from, to, d => { if (iso(d) >= data.settings.startDate && isSchoolDay(d)) n += sickShare(d); });
   return n;
 }
+/* Freie Tage: gespeichert wie bisher als Text (eine Zeile je Zeitraum), Bedienung nur über Kalenderfelder */
+function renderFree(){
+  const R = freeRanges().filter((r,i) => i < (data.settings.free || "").split("\n").filter(l => /\d{4}-\d\d-\d\d/.test(l)).length);
+  document.getElementById("freelist").innerHTML = R.length ? R.map(([a,b]) =>
+    `<div class="ver"><span>${deDate(a)}${b !== a ? " – " + deDate(b) : ""}</span><button type="button" class="btn sec" style="padding:6px 10px;color:var(--red);border-color:var(--red)" onclick="delFree('${a}','${b}')">✕</button></div>`).join("")
+    : '<p class="hint">Keine zusätzlichen freien Tage eingetragen.</p>';
+}
+function freeLines(){ return (data.settings.free || "").split("\n").filter(l => /\d{4}-\d\d-\d\d/.test(l)); }
+function addFree(){
+  const a = document.getElementById("ffrom").value, b = document.getElementById("fto").value || a;
+  if (!a){ alert("Bitte ein Datum wählen."); return; }
+  if (b < a){ alert("„bis“ darf nicht vor „von“ liegen."); return; }
+  const lines = freeLines(); lines.push(a === b ? a : `${a} bis ${b}`); lines.sort();
+  data.settings.free = lines.join("\n"); data.settings.upd = Date.now();
+  document.getElementById("ffrom").value = ""; document.getElementById("fto").value = "";
+  persist(); queueSync(); renderFree(); toast("Freie Tage gespeichert");   // kein komplettes Neuzeichnen: ungespeicherte Eingaben bleiben erhalten
+}
+function delFree(a, b){
+  data.settings.free = freeLines().filter(l => { const m = l.match(/(\d{4}-\d\d-\d\d)(?:\s*(?:bis|-|–)\s*(\d{4}-\d\d-\d\d))?/); return !(m && m[1] === a && (m[2] || m[1]) === b); }).join("\n");
+  data.settings.upd = Date.now(); persist(); queueSync(); renderFree();
+}
+/* Links */
+const DEF_LINKS = [{name:"Schulmanager Online", url:"https://login.schulmanager-online.de/"}, {name:"Bildungsserver Sachsen-Anhalt", url:"https://www.bildung-lsa.de/"}];
+const getLinks = () => Array.isArray(data.settings.links) ? data.settings.links : DEF_LINKS;
+function renderLinks(){
+  const L = getLinks();
+  document.getElementById("linklist").innerHTML = L.length ? L.map((l,i) =>
+    `<div class="ver"><a href="${esc(l.url)}" target="_blank" rel="noopener" class="btn" style="flex:1;text-decoration:none;text-align:left">🔗 ${esc(l.name)}</a>
+     <button type="button" class="btn sec" style="padding:6px 10px" onclick="moveLink(${i})" title="nach oben">↑</button>
+     <button type="button" class="btn sec" style="padding:6px 10px;color:var(--red);border-color:var(--red)" onclick="delLink(${i})">✕</button></div>`).join("")
+    : '<p class="hint">Noch keine Links.</p>';
+}
+function setLinks(L){ data.settings.links = L; data.settings.upd = Date.now(); save(); }
+function addLink(){
+  const n = document.getElementById("lname").value.trim(); let u = document.getElementById("lurl").value.trim();
+  if (!n || !u){ alert("Bitte Name und Adresse eingeben."); return; }
+  if (!/^https?:\/\//i.test(u)) u = "https://" + u;
+  try { new URL(u); } catch(e){ alert("Die Adresse ist ungültig."); return; }
+  setLinks(getLinks().concat([{name:n, url:u}]));
+  document.getElementById("lname").value = ""; document.getElementById("lurl").value = ""; toast("Link gespeichert");
+}
+function delLink(i){ const L = getLinks().slice(); if (!confirm(`„${L[i].name}“ entfernen?`)) return; L.splice(i,1); setLinks(L); }
+function moveLink(i){ if (!i) return; const L = getLinks().slice(); [L[i-1], L[i]] = [L[i], L[i-1]]; setLinks(L); }
 let listDays = 28;
 function dayTimeline(d, entries){
   const les = lessonIntervals(d), iv = [];
@@ -481,7 +535,10 @@ const per = {t:"w", o:0};
 function period(){
   const n = new Date(); n.setHours(0,0,0,0);
   let from, to, label;
-  if (per.t === "w"){
+  if (per.t === "d"){
+    from = new Date(n); from.setDate(n.getDate() + per.o); to = new Date(from); to.setDate(from.getDate()+1);
+    label = from.toLocaleDateString("de-DE",{weekday:"long", day:"2-digit", month:"2-digit", year:"numeric"});
+  } else if (per.t === "w"){
     from = new Date(n); from.setDate(n.getDate() - (n.getDay()+6)%7 + 7*per.o);
     to = new Date(from); to.setDate(from.getDate()+7);
     const e = new Date(to); e.setDate(e.getDate()-1);
@@ -581,6 +638,26 @@ function render(){
     + (+p.from > Date.now() ? `<div class="hint">Zeitraum liegt in der Zukunft.</div>` : "");
   const rows = [["TT","Unterricht (Stundenplan)"], ["U","Unterricht (zusätzlich)"], ["S","Präsenz in der Schule"], ...Object.entries(CATS).filter(([k]) => k !== "U" && k !== "S")];
   const mx = Math.max(1, ...rows.map(([k]) => s[k]));
+  // Zeitleiste: Tag = ein Balken, Woche = ein Balken je Tag
+  const tlEl = document.getElementById("tline");
+  if (per.t === "d" || per.t === "w"){
+    const all = allEntries().filter(e => e.id !== "_run"); let tl = "";
+    eachDay(p.from, p.to, d => {
+      const t0 = new Date(d); t0.setHours(0,0,0,0);
+      const es = all.filter(e => e.start >= +t0 && e.start < +t0 + 86400000).sort((a,b) => a.start - b.start);
+      const x = dayTimeline(d, es);
+      if (x) tl += (per.t === "w" ? `<div class="day" style="margin-top:10px">${d.toLocaleDateString("de-DE",{weekday:"short",day:"2-digit",month:"2-digit"})}</div>` : "") + x;
+    });
+    tlEl.innerHTML = "<b>Zeitleiste</b>" + (tl || '<p class="hint">Keine erfasste Zeit.</p>');
+    if (per.t === "d"){
+      const t0 = new Date(p.from), es = all.filter(e => e.start >= +p.from && e.start < +p.to).sort((a,b) => a.start - b.start);
+      const f = x => new Date(x).toLocaleTimeString("de-DE",{hour:"2-digit",minute:"2-digit"});
+      const rowsD = es.map(e => ({a:e.start, b:e.end, t:LABEL[e.cat] || e.cat, n:e.note || "", c:e.cat}))
+        .concat(lessonIntervals(t0).map(([a,b]) => ({a, b, t:"Unterricht (Stundenplan)", n:"", c:"TT"}))).sort((x,y) => x.a - y.a);
+      tlEl.innerHTML += rowsD.map(r => `<div class="row"><span><i style="display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:6px;background:${COL[r.c]}"></i>${f(r.a)}–${f(r.b)} ${esc(r.t)}${r.n ? ` <small class="hint">${esc(r.n)}</small>` : ""}</span></div>`).join("");
+    }
+    tlEl.hidden = false;
+  } else tlEl.hidden = true;
   document.getElementById("stats").innerHTML = rows.map(([k,v]) =>
     `<div class="row" style="display:block"><div style="display:flex;justify-content:space-between"><span>${v}</span><b>${hm(s[k])}</b></div>
      <div class="bar" style="width:${s[k]/mx*100}%;background:${COL[k]}"></div></div>`).join("")
@@ -597,7 +674,7 @@ function render(){
   document.getElementById("umfang").value = S.umfang;
   document.getElementById("urlaub").value = S.urlaub;
   document.getElementById("sdate").value = S.startDate;
-  document.getElementById("free").value = S.free;
+  renderFree(); renderLinks();
   renderHol();
   const con = lsGet("gd-connected") === "1", ok = !CLIENT_ID.startsWith("HIER");
   document.getElementById("acct").textContent = !ok ? "Noch keine Client-ID eingetragen (siehe Anleitung)."
@@ -734,7 +811,7 @@ async function saveSettings(){
     editFrom = null;
   }
   data.settings = {versions:V, weekly:+v("weekly") || 0, umfang:+v("umfang") || 0, urlaub:+v("urlaub") || 0,
-    startDate:v("sdate") || S.startDate, free:v("free"), upd:Date.now()};
+    startDate:v("sdate") || S.startDate, free:S.free, links:S.links, upd:Date.now()};
   save(); toast(changed ? "Stundenplan und Einstellungen gespeichert" : "Einstellungen gespeichert");
 }
 function csv(){
