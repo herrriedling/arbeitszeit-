@@ -29,7 +29,19 @@ main{max-width:640px;margin:0 auto;padding:16px}.card{background:var(--card);bor
 label{display:block;font-size:14px;margin:10px 0 4px}input,select,textarea{width:100%;padding:9px;border:1px solid var(--bd);border-radius:8px;background:var(--bg);color:var(--tx);font-size:15px}
 input[type=checkbox]{width:auto;margin-right:8px}
 .quick{display:grid;grid-template-columns:1fr auto auto auto;gap:8px;align-items:center}
-.tt{display:grid;grid-template-columns:34px 1fr auto;gap:6px 8px;align-items:center}.tt.ab{grid-template-columns:34px 1fr 1fr}
+.per{display:grid;grid-template-columns:28px 1fr 14px 1fr;gap:6px;align-items:center;margin-top:8px}.per input{padding:7px}
+.chips{display:grid;grid-template-columns:26px repeat(8,1fr) 50px;gap:4px;align-items:center;margin-top:6px}
+.chip{padding:9px 0;border:1px solid var(--bd);border-radius:6px;background:var(--bg);color:var(--tx);font-weight:600;font-size:14px}
+.chip.on{background:var(--pri);color:#fff;border-color:var(--pri)}.chips .sum{font-size:12px;color:var(--mut);text-align:right}
+.wk{margin-top:14px;font-weight:600}
+.dayblk{border-top:1px solid var(--bd);padding:12px 0 4px}.dayblk:first-child{border-top:0}
+.dayhead{display:flex;justify-content:space-between;align-items:baseline;gap:8px}.dayhead b{font-size:15px}
+.lessons{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0}.les{min-width:44px;padding:7px 8px;border-radius:8px;border:1px solid var(--pri);background:var(--pri);color:#fff;font-weight:600}
+.les.off{background:var(--bg);color:var(--mut);border-color:var(--bd);text-decoration:line-through}.les:disabled{opacity:.45}
+.sickrow{display:flex;gap:8px;align-items:center;flex-wrap:wrap}.sickrow select{width:auto;flex:1;min-width:170px}.sickrow input{width:auto}
+.dayblk.sick .dayhead b::after{content:" 🤒"}
+.ver{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--bd)}.ver.cur b{color:var(--pri)}
+.opt{display:flex;gap:8px;align-items:flex-start;margin:10px 0;font-size:15px}.opt input{width:auto;margin-top:3px}
 .pnav{display:flex;justify-content:space-between;align-items:center;margin:12px 0}.seg{display:flex;gap:6px;flex-wrap:wrap}.seg button{flex:1;padding:10px 6px}
 dialog{border:0;border-radius:12px;width:min(92vw,420px);background:var(--card);color:var(--tx)}dialog::backdrop{background:#0007}
 .bar{height:8px;background:var(--pri);border-radius:4px;margin-top:4px}
@@ -51,11 +63,18 @@ dialog{border:0;border-radius:12px;width:min(92vw,420px);background:var(--card);
    <b>Schnellerfassung</b><div class="hint">Bucht die Minuten rückwirkend bis jetzt, z. B. für ein kurzes Telefonat.</div>
    <div class="quick"><select id="qcat"></select>
     <button class="btn" onclick="quick(10)">+10</button><button class="btn" onclick="quick(15)">+15</button><button class="btn" onclick="quick(30)">+30</button></div>
+   <button class="btn" style="width:100%;margin-top:12px;padding:14px" onclick="addVertretung()">+ Vertretungsstunde</button>
+   <div id="vtinfo" class="hint" style="margin-top:8px" hidden></div>
   </div>
  </section>
  <section id="ein" hidden>
   <button class="btn" onclick="editEntry()">+ Eintrag nachtragen</button>
-  <div class="card" style="margin-top:12px" id="list"></div>
+  <div class="card" style="margin-top:12px">
+   <div class="hint" style="margin-top:0">Tippe eine Stunde an, wenn sie ausgefallen ist (sie wird dann nicht gutgeschrieben). Bei Krankheit „krank“ wählen: Dann entfallen Unterricht und Soll für diese Zeit.</div>
+   <label>Bestimmten Tag anzeigen (auch künftige, z. B. für eine geplante Klassenfahrt)</label><input type="date" id="jump" onchange="render()">
+  </div>
+  <div class="card" id="list"></div>
+  <button class="btn sec" style="width:100%" onclick="listDays+=28;render()">Ältere Tage anzeigen</button>
  </section>
  <section id="aus" hidden>
   <div class="seg"><button data-p="w">Woche</button><button data-p="m">Monat</button><button data-p="h">Halbjahr</button><button data-p="y">Jahr</button><button data-p="s">Schuljahr</button></div>
@@ -71,11 +90,18 @@ dialog{border:0;border-radius:12px;width:min(92vw,420px);background:var(--card);
    <button class="btn sec" id="logout" onclick="logout()" hidden>Abmelden</button>
   </div>
   <div class="card">
+   <b>Stundenzeiten</b>
+   <div class="hint">Einmal festlegen, wann die 1. bis 8. Stunde beginnt und endet.</div>
+   <div id="periods"></div>
+  </div>
+  <div class="card">
    <b>Stundenplan</b>
-   <div class="hint">Unterrichtszeiten je Wochentag, durch Komma getrennt, z. B. <i>07:30-08:15, 08:25-09:10</i>. Sie werden an jedem Schultag automatisch als Unterricht gutgeschrieben (nicht an Feiertagen und eingetragenen Ferien).</div>
+   <div id="versions" style="margin:8px 0"></div>
+   <div class="hint" id="editing"></div>
+   <div class="hint">Tippe an, welche Stunden du an welchem Tag unterrichtest. Sie werden an jedem Schultag automatisch als Unterricht gutgeschrieben (nicht an Feiertagen und in den Ferien).</div>
    <label><input type="checkbox" id="ab" onchange="renderTT()">Wechselnde A/B-Wochen</label>
    <div id="abbox" hidden><label>Ein Datum aus einer A-Woche</label><input type="date" id="abref"></div>
-   <div id="tt" class="tt" style="margin-top:10px"></div>
+   <div id="tt"></div>
   </div>
   <div class="card">
    <b>Soll-Arbeitszeit</b>
@@ -102,6 +128,15 @@ dialog{border:0;border-radius:12px;width:min(92vw,420px);background:var(--card);
 </main>
 <div id="toast"></div>
 
+<dialog id="vdlg"><form method="dialog">
+ <b>Ab wann gilt der geänderte Stundenplan?</b>
+ <div class="hint">Zeiten vor diesem Datum werden nicht neu berechnet.</div>
+ <label class="opt"><input type="radio" name="vf" value="today" checked><span>Ab heute</span></label>
+ <label class="opt"><input type="radio" name="vf" value="date"><span>Ab Datum: <input type="date" id="vdate" style="margin-top:4px"></span></label>
+ <label class="opt"><input type="radio" name="vf" value="fix"><span id="vfixlbl">Diesen Plan korrigieren</span></label>
+ <label class="opt"><input type="radio" name="vf" value="sy"><span>Ab Schuljahresbeginn (ersetzt alle Pläne dieses Schuljahres)</span></label>
+ <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:12px"><button value="cancel" class="btn sec">Abbrechen</button><button value="ok" class="btn">Übernehmen</button></div>
+</form></dialog>
 <dialog id="dlg"><form method="dialog" id="frm">
  <b id="dtitle">Eintrag</b>
  <label>Tätigkeit</label><select id="fcat"></select>
@@ -117,7 +152,7 @@ dialog{border:0;border-radius:12px;width:min(92vw,420px);background:var(--card);
 <script>
 /* ===== Konfiguration: hier die Anwendungs-ID aus dem Azure-Portal eintragen ===== */
 const CLIENT_ID = "676671418561-u8sq0lmimfsnqa1oqno6vl92d0d1imcj.apps.googleusercontent.com";   // Google OAuth-Client-ID (…apps.googleusercontent.com)
-const VERSION = "0.4";
+const VERSION = "0.8";
 
 const CATS = {U:"Unterricht", V:"Vorbereitung", K:"Korrekturen", KF:"Konferenz", E:"Elternarbeit", O:"Organisation/Sonstiges"};
 const DAYS = ["Mo","Di","Mi","Do","Fr"];
@@ -129,15 +164,26 @@ const hm = min => { const s = min < 0 ? "−" : ""; min = Math.abs(Math.round(mi
 const syYear = d => d.getMonth() >= 7 ? d.getFullYear() : d.getFullYear()-1;   // Schuljahr beginnt am 1.8.
 const esc = s => String(s).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 
-function defSettings(){ return {tt:{A:["","","","",""], B:["","","","",""]}, ab:false, abRef:"",
+const DEF_PERIODS = [["07:30","08:15"],["08:25","09:10"],["09:30","10:15"],["10:25","11:10"],["11:30","12:15"],["12:25","13:10"],["13:20","14:05"],["14:15","15:00"]];
+const emptyPlan = () => ({A:[[],[],[],[],[]], B:[[],[],[],[],[]]});
+const newVersion = from => ({from, periods:DEF_PERIODS.map(p => p.slice()), plan:emptyPlan(), ab:false, abRef:""});
+function defSettings(){ return {versions:null,
   weekly:40, umfang:100, urlaub:30, startDate:`${syYear(new Date())}-08-01`, free:"", upd:0}; }
-function blank(){ return {entries:[], running:{cat:null,start:0,upd:0}, settings:defSettings(), hol:{ranges:[], fetched:0}}; }
+function blank(){ return {entries:[], running:{cat:null,start:0,upd:0}, settings:defSettings(), hol:{ranges:[], fetched:0}, days:{}}; }
 function normalize(d){
   d.entries = d.entries || []; d.running = d.running || {cat:null,start:0,upd:0};
   d.hol = d.hol && Array.isArray(d.hol.ranges) ? d.hol : {ranges:[], fetched:0};
+  d.days = d.days && typeof d.days === 'object' ? d.days : {};
   const s = Object.assign(defSettings(), d.settings || {});
-  s.tt = Object.assign({A:["","","","",""], B:["","","","",""]}, s.tt || {});
-  delete s.deputat; delete s.lessonMin;          // Altlasten aus v0.1
+  if (!Array.isArray(s.versions) || !s.versions.length){           // Umstellung von v0.5: ein Plan → erste Version
+    const v = newVersion(s.startDate);
+    if (Array.isArray(s.periods) && s.periods.length === 8) v.periods = s.periods;
+    if (s.plan && s.plan.A && s.plan.B) v.plan = s.plan;
+    v.ab = !!s.ab; v.abRef = s.abRef || "";
+    s.versions = [v];
+  }
+  s.versions.sort((a,b) => a.from < b.from ? -1 : 1);
+  ["deputat","lessonMin","tt","periods","plan","ab","abRef"].forEach(k => delete s[k]);   // Altlasten
   d.settings = s; return d;
 }
 function load(){ try { return normalize(JSON.parse(localStorage.getItem(KEY)) || blank()); } catch(e){ return blank(); } }
@@ -165,6 +211,31 @@ function stop(){
   closeRunning(now);
   data.running = {cat:null, start:0, upd:now};
   save();
+}
+/* Vertretungsstunde: bucht die laufende bzw. zuletzt beendete Stunde laut Stundenzeiten als „Unterricht (zusätzlich)“ */
+let lastVt = null;
+function addVertretung(){
+  const d = new Date(), P = planFor(d).periods, nowM = d.getHours()*60 + d.getMinutes();
+  let idx = -1;
+  P.forEach((p,i) => { const a = toMin(p[0]), b = toMin(p[1]); if (a !== null && b !== null && a <= nowM) idx = i; });
+  let start, end, label;
+  if (idx >= 0){
+    const at = t => { const x = new Date(d); x.setHours(Math.floor(toMin(t)/60), toMin(t)%60, 0, 0); return x.getTime(); };
+    start = at(P[idx][0]); end = at(P[idx][1]); label = `${idx+1}. Std.`;
+  } else { end = d.getTime(); start = end - 45*60000; label = "45 Min."; }
+  const e = {id:uid(), cat:"U", start, end, note:`Vertretung ${label}`, upd:Date.now()};
+  data.entries.push(e); lastVt = e.id; save();
+  showVt(`Vertretung ${label} erfasst.`);
+}
+function showVt(text){
+  const el = document.getElementById("vtinfo");
+  el.innerHTML = `${esc(text)} <a href="#" onclick="editEntry(lastVt);return false">Ändern</a> · <a href="#" onclick="undoVt();return false">Rückgängig</a>`;
+  el.hidden = false;
+}
+function undoVt(){
+  const e = data.entries.find(x => x.id === lastVt); if (!e) return;
+  e.del = true; e.upd = Date.now(); lastVt = null;
+  document.getElementById("vtinfo").hidden = true; save(); toast("Vertretungsstunde entfernt");
 }
 function quick(min){
   const now = Date.now(), cat = document.getElementById("qcat").value;
@@ -227,6 +298,9 @@ function eachDay(from, to, fn){ for (let d = new Date(from); d < to; d.setDate(d
 const endOfToday = () => { const t = new Date(); t.setHours(0,0,0,0); t.setDate(t.getDate()+1); return t; };
 
 /* ===== Stundenplan ===== */
+const toMin = t => { const m = /^(\d{1,2}):(\d{2})/.exec(t || ""); return m ? +m[1]*60 + +m[2] : null; };
+const periodMin = p => { const a = toMin(p && p[0]), b = toMin(p && p[1]); return a !== null && b !== null && b > a ? b - a : 0; };
+const dayMin = (list, periods) => (list || []).reduce((sum, i) => sum + periodMin(periods[i]), 0);
 function rangeMin(str){
   let sum = 0;
   for (const m of (str||"").matchAll(/(\d{1,2})[:.](\d{2})\s*[-–]\s*(\d{1,2})[:.](\d{2})/g)){
@@ -234,15 +308,80 @@ function rangeMin(str){
   }
   return sum;
 }
-function weekType(d){
-  const s = data.settings; if (!s.ab || !s.abRef) return "A";
+function planFor(d){   // gültige Stundenplan-Version für ein Datum
+  const ds = iso(d), V = data.settings.versions; let v = V[0];
+  for (const x of V) if (x.from <= ds) v = x;
+  return v;
+}
+function weekType(d, s){
+  s = s || planFor(d); if (!s.ab || !s.abRef) return "A";
   const mon = x => { const y = new Date(x); y.setHours(12,0,0,0); y.setDate(y.getDate() - (y.getDay()+6)%7); return y; };
   const w = Math.round((mon(d) - mon(new Date(s.abRef + "T12:00"))) / 604800000);
   return Math.abs(w) % 2 === 0 ? "A" : "B";
 }
+/* ===== Tagesausnahmen: Stundenausfall und Krankheit =====
+   data.days["YYYY-MM-DD"] = {off:[Stunden-Index], sick:null | "full" | Index der ersten Krankheitsstunde, upd} */
+const dayRec = d => data.days[iso(d)] || {off:[], sick:null};
+function plannedLessons(d){ const v = planFor(d); return v.plan[weekType(d, v)][d.getDay()-1] || []; }
+function creditedLessons(d){
+  const r = dayRec(d); if (r.sick === "full") return [];
+  return plannedLessons(d).filter(i => !(r.off || []).includes(i) && !(typeof r.sick === "number" && i >= r.sick));
+}
+function sickShare(d){   // Anteil des Tages-Solls, der wegen Krankheit entfällt
+  const r = dayRec(d); if (r.sick === "full") return 1; if (typeof r.sick !== "number") return 0;
+  const P = planFor(d).periods, a = toMin(P[0][0]), b = toMin(P[7][1]), k = toMin(P[r.sick][0]);
+  return a === null || b === null || k === null || b <= a ? 0 : Math.min(1, Math.max(0, (b - k) / (b - a)));
+}
+function setDay(ds, fn){
+  const r = JSON.parse(JSON.stringify(data.days[ds] || {off:[], sick:null}));
+  fn(r); r.upd = Date.now();
+  data.days[ds] = r; save();
+}
+function toggleLesson(ds, i){ setDay(ds, r => { r.off = r.off || []; const k = r.off.indexOf(i); if (k >= 0) r.off.splice(k,1); else r.off.push(i); }); }
+function setSick(ds, val){
+  setDay(ds, r => { r.sick = val === "" ? null : val === "full" ? "full" : +val; });
+}
+function sickUntil(ds){
+  const to = document.getElementById("su" + ds).value; if (!to || to < ds) { alert("Bitte ein Enddatum ab dem gewählten Tag angeben."); return; }
+  const now = Date.now();
+  eachDay(new Date(ds + "T12:00"), new Date(new Date(to + "T12:00").getTime() + 86400000), d => {
+    if (!isSchoolDay(d)) return; const k = iso(d);
+    data.days[k] = Object.assign({off:[]}, data.days[k] || {}, {sick:"full", upd:now});
+  });
+  save(); toast("Krankheit eingetragen bis " + deDate(to));
+}
+function sickDays(from, to){
+  let n = 0; eachDay(from, to, d => { if (iso(d) >= data.settings.startDate && isSchoolDay(d)) n += sickShare(d); });
+  return n;
+}
+let listDays = 28;
+function dayBlock(d, entries){
+  const ds = iso(d), r = dayRec(d), school = isSchoolDay(d), planned = school ? plannedLessons(d) : [];
+  const v = planFor(d), cred = school ? dayMin(creditedLessons(d), v.periods) : 0;
+  const f = x => new Date(x).toLocaleTimeString("de-DE",{hour:"2-digit",minute:"2-digit"});
+  const label = d.toLocaleDateString("de-DE",{weekday:"short",day:"2-digit",month:"2-digit",year:"numeric"});
+  let h = `<div class="dayblk ${r.sick !== null && r.sick !== undefined && school ? "sick" : ""}"><div class="dayhead"><b>${label}</b><small class="hint">${
+    !school ? (d.getDay() % 6 === 0 ? "Wochenende" : "Ferien/Feiertag") : "Unterricht " + hm(cred)}</small></div>`;
+  if (school){
+    if (planned.length) h += '<div class="lessons">' + planned.map(i => {
+      const sickOff = r.sick === "full" || (typeof r.sick === "number" && i >= r.sick);
+      const off = sickOff || (r.off || []).includes(i);
+      return `<button type="button" class="les ${off ? "off" : ""}" ${sickOff ? "disabled" : ""} onclick="toggleLesson('${ds}',${i})" title="${off ? "fällt aus" : "findet statt"}">${i+1}.</button>`; }).join("") + "</div>";
+    else h += '<div class="hint">Laut Stundenplan kein Unterricht.</div>';
+    const sv = r.sick === "full" ? "full" : typeof r.sick === "number" ? String(r.sick) : "";
+    h += `<div class="sickrow"><select onchange="setSick('${ds}',this.value)"><option value="">nicht krank</option><option value="full" ${sv==="full"?"selected":""}>🤒 krank (ganzer Tag)</option>`
+      + [1,2,3,4,5,6,7].map(i => `<option value="${i}" ${sv===String(i)?"selected":""}>🤒 krank ab ${i+1}. Stunde</option>`).join("") + "</select>"
+      + (sv === "full" ? `<span class="hint">bis</span><input type="date" id="su${ds}" value="${ds}"><button type="button" class="btn sec" style="padding:8px 10px" onclick="sickUntil('${ds}')">Übernehmen</button>` : "") + "</div>";
+  }
+  entries.forEach(e => {
+    h += `<div class="row"><span><b>${CATS[e.cat]||e.cat}</b><br><small>${f(e.start)}–${f(e.end)} · ${hm((e.end-e.start)/60000)}${e.note?" · "+esc(e.note):""}</small></span>
+      <button class="btn sec" onclick="editEntry('${e.id}')">✎</button></div>`;
+  });
+  return h + "</div>";
+}
 function ttMinutes(from, to){   // nur bis heute gutschreiben
   const s = data.settings, end = new Date(Math.min(+to, +endOfToday())); let sum = 0;
-  eachDay(from, end, d => { if (iso(d) >= s.startDate && isSchoolDay(d)) sum += rangeMin(s.tt[weekType(d)][d.getDay()-1]); });
+  eachDay(from, end, d => { if (iso(d) >= s.startDate && isSchoolDay(d)) { const v = planFor(d); sum += dayMin(creditedLessons(d), v.periods); } });
   return sum;
 }
 
@@ -258,7 +397,7 @@ function sollPerSchoolDay(y){
 }
 function sollMinutes(from, to){
   const s = data.settings; let sum = 0;
-  eachDay(from, to, d => { if (iso(d) >= s.startDate && isSchoolDay(d)) sum += sollPerSchoolDay(syYear(d)); });
+  eachDay(from, to, d => { if (iso(d) >= s.startDate && isSchoolDay(d)) sum += sollPerSchoolDay(syYear(d)) * (1 - sickShare(d)); });
   return sum;
 }
 
@@ -308,17 +447,19 @@ function render(){
   document.getElementById("today").textContent = `Heute: ${hm(total(st))} (Stundenplan ${hm(st.TT)})` + (soll ? ` · Soll ${hm(soll)}` : "");
   tick();
 
-  // Einträge
-  const list = data.entries.filter(e => !e.del).sort((a,b) => b.start - a.start).slice(0, 200);
-  let html = "", last = "";
-  const f = x => new Date(x).toLocaleTimeString("de-DE",{hour:"2-digit",minute:"2-digit"});
-  list.forEach(e => {
-    const d = new Date(e.start).toLocaleDateString("de-DE",{weekday:"short",day:"2-digit",month:"2-digit",year:"numeric"});
-    if (d !== last){ html += `<div class="day">${d}</div>`; last = d; }
-    html += `<div class="row"><span><b>${CATS[e.cat]||e.cat}</b><br><small>${f(e.start)}–${f(e.end)} · ${hm((e.end-e.start)/60000)}${e.note?" · "+esc(e.note):""}</small></span>
-      <button class="btn sec" onclick="editEntry('${e.id}')">✎</button></div>`;
-  });
-  document.getElementById("list").innerHTML = html || "<p class='mut'>Noch keine Einträge. Der Stundenplan-Unterricht erscheint nur in der Auswertung.</p>";
+  // Einträge: Tagesansicht (heute rückwärts, plus gewählter Tag und Tage mit Einträgen)
+  const byDay = {};
+  data.entries.filter(e => !e.del).forEach(e => { const k = iso(new Date(e.start)); (byDay[k] = byDay[k] || []).push(e); });
+  Object.values(byDay).forEach(l => l.sort((a,b) => a.start - b.start));
+  const t0d = new Date(); t0d.setHours(12,0,0,0);
+  const fromD = new Date(t0d); fromD.setDate(t0d.getDate() - listDays + 1);
+  const keys = new Set();
+  eachDay(fromD, new Date(t0d.getTime() + 3600000), d => keys.add(iso(d)));
+  Object.keys(byDay).forEach(k => { if (k >= iso(fromD)) keys.add(k); });
+  Object.keys(data.days).forEach(k => { if (k >= iso(fromD)) keys.add(k); });
+  const jump = document.getElementById("jump").value; if (jump) keys.add(jump);
+  const days = [...keys].sort().reverse().filter(k => byDay[k] || isSchoolDay(new Date(k + "T12:00")) || k === jump || data.days[k]);
+  document.getElementById("list").innerHTML = days.map(k => dayBlock(new Date(k + "T12:00"), byDay[k] || [])).join("") || "<p class='mut'>Keine Tage im Zeitraum.</p>";
 
   // Auswertung
   document.querySelectorAll("[data-p]").forEach(b => b.className = "btn " + (b.dataset.p === per.t ? "" : "sec"));
@@ -331,6 +472,7 @@ function render(){
      <div class="row"><span>Soll${running ? " bis heute" : ""}</span><b>${hm(sollBis)}</b></div>
      <div class="row"><b>Saldo</b><b class="${saldo >= 0 ? "plus" : "minus"}">${saldo >= 0 ? "+" : ""}${hm(saldo)}</b></div>`
     + (running ? `<div class="row"><span class="hint">Soll im gesamten Zeitraum</span><span class="hint">${hm(sollAll)}</span></div>` : "")
+    + (sickDays(p.from, p.to) > 0 ? `<div class="row"><span>Krankheitstage (Soll entfällt)</span><b>${String(Math.round(sickDays(p.from, p.to)*10)/10).replace(".", ",")}</b></div>` : "")
     + (+p.from > Date.now() ? `<div class="hint">Zeitraum liegt in der Zukunft.</div>` : "");
   const rows = [["TT","Unterricht (Stundenplan)"], ...Object.entries(CATS).map(([k,v]) => [k, k==="U" ? "Unterricht (zusätzlich)" : v])];
   const mx = Math.max(1, ...rows.map(([k]) => s[k]));
@@ -340,9 +482,11 @@ function render(){
 
   // Einstellungen
   const S = data.settings;
-  document.getElementById("ab").checked = S.ab;
-  document.getElementById("abref").value = S.abRef;
-  renderTT(true);
+  const EV = editVersion();
+  document.getElementById("ab").checked = EV.ab;
+  document.getElementById("abref").value = EV.abRef;
+  renderVersions();
+  renderPeriods(); renderTT(true);
   document.getElementById("weekly").value = S.weekly;
   document.getElementById("umfang").value = S.umfang;
   document.getElementById("urlaub").value = S.urlaub;
@@ -356,20 +500,70 @@ function render(){
   document.getElementById("login").hidden = con || !ok;
   document.getElementById("logout").hidden = !con;
 }
-function renderTT(fromData){
-  const ab = document.getElementById("ab").checked, box = document.getElementById("tt");
-  const cur = fromData ? data.settings.tt : readTT();
-  document.getElementById("abbox").hidden = !ab;
-  box.className = "tt" + (ab ? " ab" : "");
-  box.innerHTML = (ab ? `<span></span><b>A-Woche</b><b>B-Woche</b>` : "") + DAYS.map((d,i) =>
-    `<b>${d}</b><input id="ttA${i}" value="${esc(cur.A[i]||"")}" placeholder="07:30-08:15, 08:25-09:10" oninput="ttSum(${i})">`
-    + (ab ? `<input id="ttB${i}" value="${esc(cur.B[i]||"")}">` : `<span class="hint" id="tts${i}"></span>`)).join("");
-  if (!ab) DAYS.forEach((_,i) => ttSum(i));
+let planDraft = null;
+function readPeriods(){
+  return DEF_PERIODS.map((d,i) => { const a = document.getElementById("ps"+i), b = document.getElementById("pe"+i);
+    return a ? [a.value, b.value] : editVersion().periods[i]; });
 }
-function ttSum(i){ const el = document.getElementById("tts"+i); if (el) el.textContent = hm(rangeMin(document.getElementById("ttA"+i).value)); }
-function readTT(){
-  const old = data.settings.tt, g = (w,i) => { const el = document.getElementById(`tt${w}${i}`); return el ? el.value.trim() : old[w][i]; };
-  return {A:DAYS.map((_,i) => g("A",i)), B:DAYS.map((_,i) => g("B",i))};
+function renderPeriods(){
+  const P = editVersion().periods;
+  document.getElementById("periods").innerHTML = '<div class="per">' + P.map((p,i) =>
+    `<b>${i+1}.</b><input type="time" id="ps${i}" value="${esc(p[0]||"")}" onchange="ttSums()"><span>–</span><input type="time" id="pe${i}" value="${esc(p[1]||"")}" onchange="ttSums()">`).join("") + "</div>";
+}
+function renderTT(fromData){
+  if (fromData || !planDraft) planDraft = JSON.parse(JSON.stringify(editVersion().plan));
+  const ab = document.getElementById("ab").checked;
+  document.getElementById("abbox").hidden = !ab;
+  document.getElementById("tt").innerHTML = (ab ? ["A","B"] : ["A"]).map(w =>
+    (ab ? `<div class="wk">${w}-Woche</div>` : "") + '<div class="chips"><span></span>'
+    + [1,2,3,4,5,6,7,8].map(n => `<span class="hint" style="text-align:center;margin:0">${n}.</span>`).join("") + "<span></span>"
+    + DAYS.map((d,di) => `<b>${d}</b>` + [0,1,2,3,4,5,6,7].map(pi =>
+        `<button type="button" class="chip ${planDraft[w][di].includes(pi) ? "on" : ""}" onclick="togglePeriod('${w}',${di},${pi},this)">${pi+1}</button>`).join("")
+      + `<span class="sum" id="sum${w}${di}"></span>`).join("") + "</div>").join("");
+  ttSums();
+}
+function togglePeriod(w, di, pi, el){
+  const l = planDraft[w][di], k = l.indexOf(pi);
+  if (k >= 0) l.splice(k, 1); else { l.push(pi); l.sort((a,b) => a-b); }
+  el.classList.toggle("on", k < 0); ttSums();
+}
+function ttSums(){
+  const P = readPeriods();
+  ["A","B"].forEach(w => DAYS.forEach((_,di) => { const el = document.getElementById(`sum${w}${di}`); if (el) el.textContent = hm(dayMin(planDraft[w][di], P)); }));
+}
+function readTT(){ return JSON.parse(JSON.stringify(planDraft || editVersion().plan)); }
+let editFrom = null;   // Startdatum der Version, die gerade im Editor steht (null = heute gültige)
+function editVersion(){ const V = data.settings.versions; return V.find(v => v.from === editFrom) || planFor(new Date()); }
+const deDate = ds => new Date(ds + "T12:00").toLocaleDateString("de-DE");
+function renderVersions(){
+  const V = data.settings.versions, ev = editVersion(), cur = planFor(new Date());
+  document.getElementById("versions").innerHTML = '<div class="hint" style="margin:0">Stundenpläne:</div>' + V.map((v,i) => {
+    const to = V[i+1] ? new Date(new Date(V[i+1].from + "T12:00") - 86400000) : null;
+    return `<div class="ver ${v === ev ? "cur" : ""}"><span><b>ab ${deDate(v.from)}</b>${to ? " bis " + to.toLocaleDateString("de-DE") : ""}${v === cur ? " · <small>aktuell</small>" : ""}</span>
+      <span>${v === ev ? '<small class="hint">wird bearbeitet</small>' : `<button type="button" class="btn sec" style="padding:6px 10px" onclick="editFrom='${v.from}';render()">Bearbeiten</button>`}
+      ${V.length > 1 ? `<button type="button" class="btn sec" style="padding:6px 10px;color:var(--red);border-color:var(--red)" onclick="delVersion('${v.from}')">✕</button>` : ""}</span></div>`; }).join("");
+  document.getElementById("editing").textContent = `Unten steht der Plan ab ${deDate(ev.from)}. Änderungen werden beim Speichern abgefragt: ab heute, ab Datum oder als Korrektur.`;
+}
+function delVersion(from){
+  if (!confirm(`Stundenplan ab ${deDate(from)} löschen? Für diesen Zeitraum gilt dann wieder der vorherige Plan.`)) return;
+  data.settings.versions = data.settings.versions.filter(v => v.from !== from);
+  data.settings.upd = Date.now(); editFrom = null; save();
+}
+function askFrom(ev){
+  return new Promise(res => {
+    const d = document.getElementById("vdlg");
+    document.getElementById("vfixlbl").textContent = `Plan ab ${deDate(ev.from)} korrigieren (gilt rückwirkend ab ${deDate(ev.from)})`;
+    document.getElementById("vdate").value = iso(new Date());
+    d.querySelector('input[value=today]').checked = true;
+    d.onclose = () => {
+      if (d.returnValue !== "ok") return res(null);
+      const m = d.querySelector('input[name=vf]:checked').value;
+      if (m === "date" && !document.getElementById("vdate").value) return res(null);
+      res({mode:m, date: m === "today" ? iso(new Date()) : m === "date" ? document.getElementById("vdate").value
+        : m === "sy" ? `${syYear(new Date())}-08-01` : ev.from});
+    };
+    d.returnValue = ""; d.showModal();
+  });
 }
 function tick(){
   const r = data.running;
@@ -413,13 +607,26 @@ function editEntry(id){
   };
   dlg.returnValue = ""; dlg.showModal();
 }
-function saveSettings(){
+async function saveSettings(){
   const v = id => document.getElementById(id).value, S = data.settings;
-  data.settings = {tt:readTT(), ab:document.getElementById("ab").checked, abRef:v("abref"),
-    weekly:+v("weekly") || 0, umfang:+v("umfang") || 0, urlaub:+v("urlaub") || 0,
+  const P = readPeriods();
+  if (P.some(p => (p[0] || p[1]) && !periodMin(p))){ alert("Bitte die Stundenzeiten prüfen: Bei jeder Stunde muss das Ende nach dem Beginn liegen."); return; }
+  const ev = editVersion(), nv = {periods:P, plan:readTT(), ab:document.getElementById("ab").checked, abRef:v("abref")};
+  if (nv.ab && !nv.abRef) alert("Bitte ein Datum aus einer A-Woche angeben, sonst gilt jede Woche als A-Woche.");
+  let V = data.settings.versions.map(x => JSON.parse(JSON.stringify(x)));
+  const changed = JSON.stringify({periods:ev.periods, plan:ev.plan, ab:ev.ab, abRef:ev.abRef}) !== JSON.stringify(nv);
+  if (changed){
+    const c = await askFrom(ev); if (!c) return;
+    if (c.mode === "sy") V = V.filter(x => x.from < c.date);
+    if (c.mode === "fix") V = V.filter(x => x.from !== ev.from);
+    V = V.filter(x => x.from !== c.date);
+    V.push({from:c.date, ...JSON.parse(JSON.stringify(nv))});
+    V.sort((a,b) => a.from < b.from ? -1 : 1);
+    editFrom = null;
+  }
+  data.settings = {versions:V, weekly:+v("weekly") || 0, umfang:+v("umfang") || 0, urlaub:+v("urlaub") || 0,
     startDate:v("sdate") || S.startDate, free:v("free"), upd:Date.now()};
-  if (data.settings.ab && !data.settings.abRef) alert("Bitte ein Datum aus einer A-Woche angeben, sonst gilt jede Woche als A-Woche.");
-  save(); toast("Einstellungen gespeichert");
+  save(); toast(changed ? "Stundenplan und Einstellungen gespeichert" : "Einstellungen gespeichert");
 }
 function csv(){
   const p = period(), s = sums(p.from, p.to);
@@ -430,7 +637,7 @@ function csv(){
   });
   const sollBis = sollMinutes(p.from, new Date(Math.min(+p.to, +endOfToday()))), ist = total(s);
   lines.push("", `;;;Unterricht (Stundenplan);${Math.round(s.TT)};`, `;;;Ist gesamt;${Math.round(ist)};`,
-    `;;;Soll;${Math.round(sollBis)};`, `;;;Saldo;${Math.round(ist - sollBis)};`);
+    `;;;Soll;${Math.round(sollBis)};`, `;;;Krankheitstage;${String(Math.round(sickDays(p.from, p.to)*10)/10).replace('.', ',')};`, `;;;Saldo;${Math.round(ist - sollBis)};`);
   const a = document.createElement("a");
   a.href = URL.createObjectURL(new Blob(["﻿" + lines.join("\r\n")], {type:"text/csv"}));
   a.download = `Arbeitszeit ${p.label}.csv`.replace(/[\/:–]/g,"-").replace(/\s+/g,"_");
@@ -501,7 +708,8 @@ function merge(a, b){
   return normalize({entries:[...m.values()],
     running:(a.running.upd >= b.running.upd ? a : b).running,
     settings:(a.settings.upd >= b.settings.upd ? a : b).settings,
-    hol:(a.hol.fetched >= b.hol.fetched ? a : b).hol});
+    hol:(a.hol.fetched >= b.hol.fetched ? a : b).hol,
+    days:(() => { const o = {...a.days}; Object.entries(b.days || {}).forEach(([k,v]) => { if (!o[k] || (v.upd||0) > (o[k].upd||0)) o[k] = v; }); return o; })()});
 }
 let syncing = false, again = false, timer = null;
 function queueSync(){ clearTimeout(timer); timer = setTimeout(sync, 1500); }
