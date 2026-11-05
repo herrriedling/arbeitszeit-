@@ -56,10 +56,20 @@ dialog{border:0;border-radius:12px;width:min(92vw,420px);background:var(--card);
 .plus{color:var(--grn)}.minus{color:var(--red)}
 #toast{position:fixed;left:50%;bottom:20px;transform:translateX(-50%);background:#222;color:#fff;padding:10px 16px;border-radius:20px;font-size:14px;opacity:0;transition:opacity .3s;pointer-events:none}
 #toast.show{opacity:.95}
+.hdr{display:flex;align-items:center;gap:10px}
+.helpbtn{width:30px;height:30px;border-radius:50%;border:2px solid #fff;background:none;color:#fff;font-weight:700;font-size:16px;padding:0;cursor:pointer}
+.helpbtn.on{background:#fff;color:var(--pri)}
+.ib{display:inline-block;margin-left:6px;color:var(--pri);text-decoration:none;font-weight:600;font-size:15px}
+.helplink{display:block;text-align:center;margin-top:12px;color:var(--pri);font-size:14px}
+#hilfe h2{font-size:17px;margin:0 0 8px;color:var(--pri)}#hilfe h3{font-size:15px;margin:14px 0 4px}
+#hilfe p,#hilfe li{font-size:15px;line-height:1.45}#hilfe ul,#hilfe ol{padding-left:22px;margin:6px 0}
+#hilfe .tip{background:var(--bg);border-left:4px solid var(--pri);padding:8px 10px;border-radius:6px;font-size:14px}
+#hilfe .toc a{display:inline-block;margin:3px 8px 3px 0;color:var(--pri)}
+#hilfe dt{font-weight:700;margin-top:8px}#hilfe dd{margin:2px 0 0 0}
 </style>
 </head>
 <body>
-<header><h1>⏱ Arbeitszeit</h1><span id="status">lokal</span></header>
+<header><h1>⏱ Arbeitszeit</h1><span class="hdr"><span id="status">lokal</span><button class="helpbtn" id="helpbtn" onclick="toggleHelp()" title="Anleitung" aria-label="Anleitung">?</button></span></header>
 <nav id="nav">
  <button data-t="erf" class="on">Erfassen</button><button data-t="ein">Einträge</button><button data-t="aus">Auswertung</button><button data-t="lnk">Links</button><button data-t="set">Einstellungen</button>
 </nav>
@@ -68,17 +78,18 @@ dialog{border:0;border-radius:12px;width:min(92vw,420px);background:var(--card);
   <div class="card"><div class="mut" id="curCat">Keine Erfassung aktiv</div><div class="big" id="curTime">--:--:--</div><div class="mut" id="today"></div></div>
   <div class="grid" id="cats"></div>
   <div class="card" style="margin-top:16px">
-   <b>Schnellerfassung</b><div class="hint">Bucht die Minuten rückwirkend bis jetzt, z. B. für ein kurzes Telefonat.</div>
+   <b>Schnellerfassung</b><a href="#" class="ib" onclick="showHelp('h-erf');return false" title="Hilfe">ⓘ</a><div class="hint">Bucht die Minuten rückwirkend bis jetzt, z. B. für ein kurzes Telefonat.</div>
    <div class="quick"><select id="qcat"></select>
     <button class="btn" onclick="quick(10)">+10</button><button class="btn" onclick="quick(15)">+15</button><button class="btn" onclick="quick(30)">+30</button></div>
    <button class="btn" style="width:100%;margin-top:12px;padding:14px" onclick="addVertretung()">+ Vertretungsstunde</button>
    <div id="vtinfo" class="hint" style="margin-top:8px" hidden></div>
   </div>
+  <a href="#" class="helplink" onclick="showHelp('h-erf');return false">ⓘ Welcher Knopf wofür?</a>
  </section>
  <section id="ein" hidden>
   <button class="btn" onclick="editEntry()">+ Eintrag nachtragen</button>
   <div class="card" style="margin-top:12px">
-   <div class="hint" style="margin-top:0">Tippe eine Stunde an, wenn sie ausgefallen ist (sie wird dann nicht gutgeschrieben). Bei Krankheit „krank“ wählen: Dann entfallen Unterricht und Soll für diese Zeit.</div>
+   <div class="hint" style="margin-top:0">Tippe eine Stunde an, wenn sie ausgefallen ist (sie wird dann nicht gutgeschrieben). Bei Krankheit „krank“ wählen: Dann entfallen Unterricht und Soll für diese Zeit. <a href="#" class="ib" style="font-size:13px;margin:0" onclick="showHelp('h-ein');return false">ⓘ Mehr</a></div>
    <label>Bestimmten Tag anzeigen (auch künftige, z. B. für eine geplante Klassenfahrt)</label><input type="date" id="jump" onchange="render()">
   </div>
   <div class="card" id="list"></div>
@@ -91,6 +102,7 @@ dialog{border:0;border-radius:12px;width:min(92vw,420px);background:var(--card);
   <div class="card" id="tline"></div>
   <div class="card" id="stats"></div>
   <button class="btn sec" onclick="csv()">Als CSV (Excel) exportieren</button>
+  <a href="#" class="helplink" onclick="showHelp('h-aus');return false">ⓘ Was bedeuten Ist, Soll und Saldo?</a>
  </section>
  <section id="lnk" hidden>
   <div class="card"><b>Links</b><div class="hint">Öffnen in einem neuen Fenster.</div><div id="linklist" style="margin-top:8px"></div></div>
@@ -101,7 +113,7 @@ dialog{border:0;border-radius:12px;width:min(92vw,420px);background:var(--card);
  </section>
  <section id="set" hidden>
   <div class="card">
-   <b>Google Drive</b><p id="acct" class="hint"></p>
+   <b>Google Drive</b><a href="#" class="ib" onclick="showHelp('h-daten');return false" title="Hilfe">ⓘ</a><p id="acct" class="hint"></p>
    <button class="btn" id="login" onclick="login()">Mit Google Drive verbinden</button>
    <button class="btn sec" id="logout" onclick="logout()" hidden>Abmelden</button>
   </div>
@@ -111,7 +123,7 @@ dialog{border:0;border-radius:12px;width:min(92vw,420px);background:var(--card);
    <div id="periods"></div>
   </div>
   <div class="card">
-   <b>Stundenplan</b>
+   <b>Stundenplan</b><a href="#" class="ib" onclick="showHelp('h-weitere');return false" title="Hilfe">ⓘ</a>
    <div id="versions" style="margin:8px 0"></div>
    <div class="hint" id="editing"></div>
    <div class="hint">Tippe an, welche Stunden du an welchem Tag unterrichtest. Sie werden an jedem Schultag automatisch als Unterricht gutgeschrieben (nicht an Feiertagen und in den Ferien).</div>
@@ -120,7 +132,7 @@ dialog{border:0;border-radius:12px;width:min(92vw,420px);background:var(--card);
    <div id="tt"></div>
   </div>
   <div class="card">
-   <b>Soll-Arbeitszeit</b>
+   <b>Soll-Arbeitszeit</b><a href="#" class="ib" onclick="showHelp('h-soll');return false" title="Hilfe">ⓘ</a>
    <label>Wochenarbeitszeit bei Vollzeit (Std.)</label><input type="number" id="weekly" step="0.5" min="0">
    <label>Beschäftigungsumfang (%)</label><input type="number" id="umfang" min="0" max="100">
    <label>Urlaubstage pro Jahr</label><input type="number" id="urlaub" min="0" max="60">
@@ -143,6 +155,98 @@ dialog{border:0;border-radius:12px;width:min(92vw,420px);background:var(--card);
    <div class="hint">Gesetzliche Feiertage in Sachsen-Anhalt werden automatisch berücksichtigt.</div>
   </div>
   <button class="btn" onclick="saveSettings()">Einstellungen speichern</button>
+ </section>
+ <section id="hilfe" hidden>
+  <div class="card" id="h-top">
+   <h2>⏱ Kurzanleitung</h2>
+   <p>Mit dieser App erfasst du deine Arbeitszeit per Knopfdruck. Sie vergleicht sie mit deinem Soll und zeigt, ob du im Plus oder Minus bist.</p>
+   <div class="toc"><a href="#" onclick="helpGo('h-start');return false">Einrichten</a><a href="#" onclick="helpGo('h-erf');return false">Erfassen</a><a href="#" onclick="helpGo('h-ein');return false">Einträge</a><a href="#" onclick="helpGo('h-aus');return false">Auswertung</a><a href="#" onclick="helpGo('h-soll');return false">Soll</a><a href="#" onclick="helpGo('h-weitere');return false">Weiteres</a><a href="#" onclick="helpGo('h-daten');return false">Daten</a><a href="#" onclick="helpGo('h-faq');return false">Fragen</a></div>
+  </div>
+  <div class="card" id="h-start">
+   <h2>1. Einmalig einrichten</h2>
+   <ol>
+    <li><b>App installieren:</b> Android (Chrome): Menü ⋮ → „Zum Startbildschirm hinzufügen“. Windows (Edge/Chrome): Symbol „App installieren“ in der Adresszeile.</li>
+    <li><b>Google Drive verbinden</b> (Einstellungen): Dann sind die Daten auf allen Geräten gleich. Ohne Verbindung bleiben sie nur auf diesem Gerät.</li>
+    <li><b>Stundenzeiten:</b> Beginn und Ende der 1. bis 8. Stunde eintragen.</li>
+    <li><b>Stundenplan:</b> Antippen, welche Stunden du an welchem Tag unterrichtest. Bei wechselnden Wochen „A/B-Wochen“ anhaken und ein Datum aus einer A-Woche angeben.</li>
+    <li><b>Soll-Arbeitszeit:</b> Wochenarbeitszeit bei Vollzeit, Beschäftigungsumfang in % und Urlaubstage.</li>
+    <li><b>Ferien laden:</b> Einmal pro Schuljahr „Ferien laden“ tippen. Feiertage in Sachsen-Anhalt kennt die App schon.</li>
+    <li><b>Freie Tage:</b> Bewegliche Ferientage oder pädagogische Tage eintragen.</li>
+    <li>Zum Schluss <b>„Einstellungen speichern“</b>.</li>
+   </ol>
+   <p class="tip">💡 Deinen Unterricht laut Stundenplan musst du <b>nicht</b> erfassen. Er wird an jedem Schultag automatisch gutgeschrieben.</p>
+  </div>
+  <div class="card" id="h-erf">
+   <h2>2. Täglich erfassen</h2>
+   <dl>
+    <dt>🏫 In der Schule</dt><dd>Wenn du ankommst. Zählt deine Anwesenheit (Aufsicht, Gespräche, Freistunden …).</dd>
+    <dt>Vorbereitung, Korrekturen, Konferenz, Elternarbeit, Organisation/Sonstiges</dt><dd>Startet die Uhr für diese Tätigkeit. Ein Tipp auf einen anderen Knopf wechselt direkt.</dd>
+    <dt>Unterricht</dt><dd>Nur für <i>zusätzlichen</i> Unterricht, der nicht im Stundenplan steht.</dd>
+    <dt>☕ Pause</dt><dd>Nur in der Schule. Pausen <b>ab 15 Minuten</b> zählen nicht als Arbeitszeit, kürzere schon.</dd>
+    <dt>■ Stopp</dt><dd>Beendet die Tätigkeit. In der Schule geht es zurück zu „In der Schule“, ein zweiter Stopp beendet den Schultag.</dd>
+   </dl>
+   <h3>Außerdem</h3>
+   <ul>
+    <li><b>Schnellerfassung:</b> Tätigkeit wählen und +10 / +15 / +30 tippen, z. B. nach einem Elterntelefonat. Die Minuten werden rückwirkend bis jetzt gebucht.</li>
+    <li><b>+ Vertretungsstunde:</b> Bucht die laufende oder zuletzt beendete Stunde als Unterricht. Mit „Ändern“ oder „Rückgängig“ korrigierst du sie.</li>
+    <li><b>Vergessen zu stoppen?</b> Am nächsten Tag fragt die App, wann du aufgehört hast.</li>
+    <li>Vertippt und sofort gewechselt (unter 30 Sekunden)? Dann wird nichts gespeichert.</li>
+   </ul>
+  </div>
+  <div class="card" id="h-ein">
+   <h2>3. Einträge ansehen und korrigieren</h2>
+   <ul>
+    <li><b>✎</b> neben einem Eintrag: Zeit, Tätigkeit oder Notiz ändern oder löschen.</li>
+    <li><b>+ Eintrag nachtragen:</b> Für vergessene Arbeit, z. B. Korrekturen am Wochenende.</li>
+    <li><b>Stunde ausgefallen?</b> Stundennummer antippen. Sie wird durchgestrichen und nicht gutgeschrieben. Nochmal tippen macht es rückgängig.</li>
+    <li><b>Krank?</b> „krank (ganzer Tag)“ oder „krank ab … Stunde“ wählen. Für mehrere Tage ein Enddatum angeben. Dann entfallen Unterricht und Soll.</li>
+    <li><b>Bestimmten Tag anzeigen:</b> Springt zu einem Tag, auch in der Zukunft (z. B. Klassenfahrt).</li>
+   </ul>
+  </div>
+  <div class="card" id="h-aus">
+   <h2>4. Auswertung</h2>
+   <ul>
+    <li>Zeitraum wählen: <b>Tag, Woche, Monat, Halbjahr, Jahr, Schuljahr</b>. Mit ◀ ▶ blättern.</li>
+    <li><b>Ist</b> = deine erfasste Zeit · <b>Soll</b> = was du bis heute arbeiten solltest · <b>Saldo</b> = Plus (grün) oder Minus (rot).</li>
+    <li>Die <b>Zeitleiste</b> zeigt bei Tag und Woche, wann du was gemacht hast.</li>
+    <li><b>Als CSV exportieren:</b> Öffnet sich in Excel, z. B. zum Ausdrucken.</li>
+   </ul>
+  </div>
+  <div class="card" id="h-soll">
+   <h2>So wird das Soll berechnet</h2>
+   <p>Arbeitstage (Mo–Fr) im Schuljahr minus Feiertage und Urlaubstage ergeben das Jahres-Soll. Es wird auf die <b>Schultage</b> verteilt, weil Lehrkräfte die Ferienzeit in den Schulwochen „vorarbeiten“.</p>
+   <p>Deshalb ist dein Soll an Schultagen höher als bei einem normalen Arbeitstag, und in den Ferien ist es null. An Krankheitstagen entfällt das Soll.</p>
+  </div>
+  <div class="card" id="h-weitere">
+   <h2>5. Weitere Funktionen</h2>
+   <ul>
+    <li><b>Links:</b> Eigene Lesezeichen, z. B. Schulmanager oder Bildungsserver.</li>
+    <li><b>Neuer Stundenplan</b> (z. B. zum Halbjahr): Plan ändern und speichern. Die App fragt, ab wann er gilt: ab heute, ab einem Datum, als Korrektur oder ab Schuljahresbeginn. Ältere Zeiten bleiben dann richtig.</li>
+   </ul>
+  </div>
+  <div class="card" id="h-daten">
+   <h2>6. Wo sind meine Daten?</h2>
+   <ul>
+    <li>Immer auf dem Gerät gespeichert, auch ohne Internet.</li>
+    <li>Mit Verbindung zusätzlich in <b>Google Drive → Ordner „Arbeitszeit“ → arbeitszeit.json</b>. Die App sieht nur diese Datei, nicht deine anderen Dateien.</li>
+   </ul>
+   <h3>Anzeige oben rechts</h3>
+   <ul>
+    <li><b>„✓ Google Drive 14:30“</b> – alles abgeglichen</li>
+    <li><b>„offline – lokal gespeichert“</b> – wird nachgeholt, sobald Internet da ist</li>
+    <li><b>„🔄 Tippen zum Synchronisieren“</b> – kurz antippen und neu anmelden</li>
+   </ul>
+  </div>
+  <div class="card" id="h-faq">
+   <h2>Häufige Fragen</h2>
+   <dl>
+    <dt>Muss ich jede Unterrichtsstunde antippen?</dt><dd>Nein, das macht der Stundenplan automatisch.</dd>
+    <dt>Ich habe vergessen, die Uhr zu starten.</dt><dd>Reiter „Einträge“ → „+ Eintrag nachtragen“.</dd>
+    <dt>Zählt „In der Schule“ doppelt, wenn ich dabei Unterricht habe?</dt><dd>Nein. Jede Minute zählt nur einmal.</dd>
+    <dt>Warum habe ich in den Ferien kein Soll?</dt><dd>Das Jahres-Soll ist schon auf die Schultage verteilt (siehe „Soll“).</dd>
+   </dl>
+  </div>
+  <button class="btn" style="width:100%" onclick="closeHelp()">← Zurück zur App</button>
  </section>
 </main>
 <div id="toast"></div>
@@ -177,7 +281,7 @@ dialog{border:0;border-radius:12px;width:min(92vw,420px);background:var(--card);
 <script>
 /* ===== Konfiguration: hier die Anwendungs-ID aus dem Azure-Portal eintragen ===== */
 const CLIENT_ID = "676671418561-u8sq0lmimfsnqa1oqno6vl92d0d1imcj.apps.googleusercontent.com";   // Google OAuth-Client-ID (…apps.googleusercontent.com)
-const VERSION = "1.0";
+const VERSION = "1.1";
 
 const CATS = {U:"Unterricht", V:"Vorbereitung", K:"Korrekturen", KF:"Konferenz", E:"Elternarbeit", O:"Organisation/Sonstiges", S:"Präsenz in der Schule"};
 const LABEL = {...CATS, P:"Pause (zählt nicht)", TT:"Unterricht (Stundenplan)"};
@@ -760,12 +864,25 @@ function tick(){
 }
 setInterval(tick, 1000);
 
-document.getElementById("nav").onclick = e => {
-  const t = e.target.dataset.t; if (!t) return;
+let tab = "erf";
+function showTab(t){
+  tab = t; document.getElementById("helpbtn").classList.remove("on");
   document.querySelectorAll("nav button").forEach(b => b.classList.toggle("on", b.dataset.t === t));
   document.querySelectorAll("main section").forEach(s => s.hidden = s.id !== t);
   render();
-};
+}
+document.getElementById("nav").onclick = e => { const t = e.target.dataset.t; if (t) showTab(t); };
+/* ===== Hilfe ===== */
+const helpOpen = () => !document.getElementById("hilfe").hidden;
+function helpGo(id){ const el = document.getElementById(id); if (el) el.scrollIntoView({behavior:"smooth", block:"start"}); }
+function showHelp(id){
+  document.querySelectorAll("main section").forEach(s => s.hidden = s.id !== "hilfe");
+  document.querySelectorAll("nav button").forEach(b => b.classList.remove("on"));
+  document.getElementById("helpbtn").classList.add("on");
+  if (id) setTimeout(() => helpGo(id), 0); else window.scrollTo(0, 0);
+}
+function closeHelp(){ showTab(tab); window.scrollTo(0, 0); }
+function toggleHelp(){ helpOpen() ? closeHelp() : showHelp(); }
 document.querySelectorAll("[data-p]").forEach(b => b.onclick = () => { per.t = b.dataset.p; per.o = 0; render(); });
 const catOptions = Object.entries(CATS).map(([k,v]) => `<option value="${k}">${v}</option>`).join("");
 document.getElementById("fcat").innerHTML = catOptions + `<option value="P">${LABEL.P}</option>`;
