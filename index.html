@@ -7,7 +7,7 @@
 <link rel="manifest" href="manifest.json">
 <link rel="icon" href="icon.svg">
 <meta name="theme-color" content="#2b5797">
-<script src="https://alcdn.msauth.net/browser/2.38.3/js/msal-browser.min.js"></script>
+<script src="https://accounts.google.com/gsi/client" async onload="gisReady()"></script>
 <style>
 :root{--bg:#f4f6fa;--card:#fff;--tx:#1d2330;--mut:#6b7385;--pri:#2b5797;--red:#c0392b;--grn:#1e8449;--bd:#dde2ec}
 @media (prefers-color-scheme:dark){:root{--bg:#14171f;--card:#1f2430;--tx:#e8ebf2;--mut:#9aa3b5;--pri:#5b8bd6;--red:#e2614f;--grn:#4cc27a;--bd:#333a4a}}
@@ -66,8 +66,8 @@ dialog{border:0;border-radius:12px;width:min(92vw,420px);background:var(--card);
  </section>
  <section id="set" hidden>
   <div class="card">
-   <b>OneDrive</b><p id="acct" class="hint"></p>
-   <button class="btn" id="login" onclick="login()">Mit OneDrive verbinden</button>
+   <b>Google Drive</b><p id="acct" class="hint"></p>
+   <button class="btn" id="login" onclick="login()">Mit Google Drive verbinden</button>
    <button class="btn sec" id="logout" onclick="logout()" hidden>Abmelden</button>
   </div>
   <div class="card">
@@ -86,7 +86,7 @@ dialog{border:0;border-radius:12px;width:min(92vw,420px);background:var(--card);
   </div>
   <div class="card">
    <b>Schulferien Sachsen-Anhalt (automatisch)</b>
-   <div class="hint">Werden nur auf Knopfdruck einmalig aus dem Internet geladen und danach lokal und in OneDrive gespeichert. Die App braucht dafür sonst keine Internetverbindung. Am besten einmal pro Schuljahr laden (es werden das laufende und das nächste Schuljahr geholt).</div>
+   <div class="hint">Werden nur auf Knopfdruck einmalig aus dem Internet geladen und danach lokal und in Google Drive gespeichert. Die App braucht dafür sonst keine Internetverbindung. Am besten einmal pro Schuljahr laden (es werden das laufende und das nächste Schuljahr geholt).</div>
    <div id="hol"></div>
    <button class="btn sec" onclick="fetchHolidays()">Ferien laden</button>
   </div>
@@ -116,8 +116,8 @@ dialog{border:0;border-radius:12px;width:min(92vw,420px);background:var(--card);
 
 <script>
 /* ===== Konfiguration: hier die Anwendungs-ID aus dem Azure-Portal eintragen ===== */
-const CLIENT_ID = "HIER-CLIENT-ID-EINTRAGEN";
-const VERSION = "0.3.2";
+const CLIENT_ID = "676671418561-u8sq0lmimfsnqa1oqno6vl92d0d1imcj.apps.googleusercontent.com";   // Google OAuth-Client-ID (…apps.googleusercontent.com)
+const VERSION = "0.4";
 
 const CATS = {U:"Unterricht", V:"Vorbereitung", K:"Korrekturen", KF:"Konferenz", E:"Elternarbeit", O:"Organisation/Sonstiges"};
 const DAYS = ["Mo","Di","Mi","Do","Fr"];
@@ -349,11 +349,12 @@ function render(){
   document.getElementById("sdate").value = S.startDate;
   document.getElementById("free").value = S.free;
   renderHol();
-  const acc = msalApp && msalApp.getAllAccounts()[0];
-  document.getElementById("acct").textContent = acc ? "Verbunden als " + acc.username
-    : (msalApp ? "Nicht verbunden – Daten liegen nur auf diesem Gerät." : "Noch keine Client-ID eingetragen (siehe Anleitung).");
-  document.getElementById("login").hidden = !!acc || !msalApp;
-  document.getElementById("logout").hidden = !acc;
+  const con = lsGet("gd-connected") === "1", ok = !CLIENT_ID.startsWith("HIER");
+  document.getElementById("acct").textContent = !ok ? "Noch keine Client-ID eingetragen (siehe Anleitung)."
+    : con ? "Verbunden. Die Daten liegen in Google Drive im Ordner „Arbeitszeit“ (Datei arbeitszeit.json)."
+    : "Nicht verbunden – Daten liegen nur auf diesem Gerät.";
+  document.getElementById("login").hidden = con || !ok;
+  document.getElementById("logout").hidden = !con;
 }
 function renderTT(fromData){
   const ab = document.getElementById("ab").checked, box = document.getElementById("tt");
@@ -436,21 +437,62 @@ function csv(){
   document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 5000);
 }
 
-/* ===== OneDrive-Synchronisation ===== */
-const SCOPES = ["Files.ReadWrite.AppFolder"];
-const FILE = "https://graph.microsoft.com/v1.0/me/drive/special/approot:/arbeitszeit.json:/content";
-let msalApp = null;
-if (!CLIENT_ID.startsWith("HIER") && window.msal){
-  msalApp = new msal.PublicClientApplication({auth:{clientId:CLIENT_ID, authority:"https://login.microsoftonline.com/common",
-    redirectUri: location.origin + location.pathname}, cache:{cacheLocation:"localStorage"}});
-}
+/* ===== Google-Drive-Synchronisation ===== */
+/* Berechtigung drive.file: Die App sieht nur Dateien, die sie selbst angelegt hat.
+   Daten: Google Drive > Arbeitszeit > arbeitszeit.json (normale, sichtbare Datei) */
+const SCOPE = "https://www.googleapis.com/auth/drive.file";
+const API = "https://www.googleapis.com/drive/v3/files", UP = "https://www.googleapis.com/upload/drive/v3/files";
+const lsGet = k => { try { return localStorage.getItem(k); } catch(e){ return null; } };
+const lsSet = (k, v) => { try { v === null ? localStorage.removeItem(k) : localStorage.setItem(k, v); } catch(e){} };
+let tokenClient = null;
 const setStatus = t => document.getElementById("status").textContent = t;
-function login(){ msalApp.loginRedirect({scopes:SCOPES}); }
-function logout(){ msalApp.logoutRedirect({account:msalApp.getAllAccounts()[0], postLogoutRedirectUri:location.origin+location.pathname}); }
-async function token(){
-  const acc = msalApp && msalApp.getAllAccounts()[0]; if (!acc) return null;
-  try { return (await msalApp.acquireTokenSilent({scopes:SCOPES, account:acc})).accessToken; }
-  catch(e){ if (e instanceof msal.InteractionRequiredAuthError) msalApp.acquireTokenRedirect({scopes:SCOPES}); return null; }
+function gisReady(){
+  if (CLIENT_ID.startsWith("HIER") || !window.google) return;
+  tokenClient = google.accounts.oauth2.initTokenClient({client_id:CLIENT_ID, scope:SCOPE, callback: r => {
+    if (r.error || !r.access_token){ setStatus("Anmeldung abgebrochen"); return; }
+    lsSet("gd-token", JSON.stringify({t:r.access_token, exp:Date.now() + (r.expires_in - 60)*1000}));
+    lsSet("gd-connected", "1"); render(); sync();
+  }});
+  showStatus();
+}
+function login(){ if (tokenClient) tokenClient.requestAccessToken({prompt:"consent"}); else alert("Google-Anmeldung noch nicht geladen. Bitte Internetverbindung prüfen."); }
+function relogin(){ if (tokenClient && lsGet("gd-connected") === "1") tokenClient.requestAccessToken({prompt:""}); }
+function logout(){
+  const t = token(); if (t && window.google) google.accounts.oauth2.revoke(t, () => {});
+  ["gd-token","gd-connected","gd-file"].forEach(k => lsSet(k, null)); setStatus("lokal"); render();
+}
+function token(){ try { const x = JSON.parse(lsGet("gd-token")); return x && x.exp > Date.now() ? x.t : null; } catch(e){ return null; } }
+function showStatus(){
+  const el = document.getElementById("status");
+  if (lsGet("gd-connected") === "1" && !token()){ el.textContent = "🔄 Tippen zum Synchronisieren"; el.style.cursor = "pointer"; el.onclick = relogin; }
+  else { el.style.cursor = ""; el.onclick = null; }
+}
+async function api(url, opt = {}){
+  const r = await fetch(url, {...opt, cache:"no-store", headers:{Authorization:"Bearer " + token(), ...(opt.headers || {})}});
+  if (r.status === 401){ lsSet("gd-token", null); throw new Error("401"); }
+  return r;
+}
+async function findOne(q){
+  const r = await api(`${API}?q=${encodeURIComponent(q + " and trashed=false")}&spaces=drive&fields=files(id)`);
+  if (!r.ok) throw new Error(r.status);
+  const j = await r.json(); return j.files && j.files[0] ? j.files[0].id : null;
+}
+async function fileId(){
+  let id = lsGet("gd-file");
+  if (id){ const r = await api(`${API}/${id}?fields=id,trashed`); if (r.ok && !(await r.json()).trashed) return id; lsSet("gd-file", null); }
+  id = await findOne("name='arbeitszeit.json'");
+  if (!id){
+    let folder = await findOne("name='Arbeitszeit' and mimeType='application/vnd.google-apps.folder'");
+    if (!folder){
+      const r = await api(API, {method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({name:"Arbeitszeit", mimeType:"application/vnd.google-apps.folder"})});
+      if (!r.ok) throw new Error(r.status); folder = (await r.json()).id;
+    }
+    const b = "azb" + Date.now(), meta = {name:"arbeitszeit.json", parents:[folder], mimeType:"application/json"};
+    const body = `--${b}\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n${JSON.stringify(meta)}\r\n--${b}\r\nContent-Type: application/json\r\n\r\n${JSON.stringify(data, null, 1)}\r\n--${b}--`;
+    const r = await api(`${UP}?uploadType=multipart&fields=id`, {method:"POST", headers:{"Content-Type":"multipart/related; boundary=" + b}, body});
+    if (!r.ok) throw new Error(r.status); id = (await r.json()).id;
+  }
+  lsSet("gd-file", id); return id;
 }
 function merge(a, b){
   b = normalize(b);
@@ -465,24 +507,25 @@ let syncing = false, again = false, timer = null;
 function queueSync(){ clearTimeout(timer); timer = setTimeout(sync, 1500); }
 async function sync(){
   if (syncing){ again = true; return; }
-  const t = await token(); if (!t) return;
+  if (!token()){ showStatus(); return; }
   syncing = true; setStatus("synchronisiere …");
   try {
-    const r = await fetch(FILE, {headers:{Authorization:"Bearer "+t}, cache:"no-store"});
-    if (r.ok) data = merge(data, await r.json()); else if (r.status !== 404) throw new Error(r.status);
+    const id = await fileId();
+    const r = await api(`${API}/${id}?alt=media`);
+    if (!r.ok) throw new Error(r.status);
+    const txt = await r.text(); if (txt.trim()) data = merge(data, JSON.parse(txt));
     persist();
-    const w = await fetch(FILE, {method:"PUT", headers:{Authorization:"Bearer "+t, "Content-Type":"application/json"}, body:JSON.stringify(data)});
+    const w = await api(`${UP}/${id}?uploadType=media`, {method:"PATCH", headers:{"Content-Type":"application/json"}, body:JSON.stringify(data, null, 1)});
     if (!w.ok) throw new Error(w.status);
-    setStatus("✓ OneDrive " + new Date().toLocaleTimeString("de-DE").slice(0,5));
+    setStatus("✓ Google Drive " + new Date().toLocaleTimeString("de-DE").slice(0,5));
     if (!document.querySelector("#set:not([hidden])")) render();   // Eingaben in den Einstellungen nicht überschreiben
-  } catch(e){ setStatus("offline – lokal gespeichert"); }
+  } catch(e){ setStatus("offline – lokal gespeichert"); showStatus(); }
   syncing = false; if (again){ again = false; sync(); }
 }
 document.addEventListener("visibilitychange", () => { if (!document.hidden) sync(); });
 setInterval(sync, 60000);
 
 (async () => {
-  if (msalApp){ try { await msalApp.handleRedirectPromise(); } catch(e){ setStatus("Anmeldefehler"); } }
   render(); sync();
   if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js");
 })();
