@@ -34,6 +34,14 @@ input[type=checkbox]{width:auto;margin-right:8px}
 .chip{padding:9px 0;border:1px solid var(--bd);border-radius:6px;background:var(--bg);color:var(--tx);font-weight:600;font-size:14px}
 .chip.on{background:var(--pri);color:#fff;border-color:var(--pri)}.chips .sum{font-size:12px;color:var(--mut);text-align:right}
 .wk{margin-top:14px;font-weight:600}
+.school{grid-column:1/-1;background:#17a589;color:#fff;border-color:#17a589}.school.on{background:#0e6655;border-color:#0e6655}
+.pausebtn{grid-column:1/-1;background:#f4d03f;color:#1d2330;border:0;padding:16px;font-size:17px;border-radius:12px;font-weight:700}
+.pausebtn.on{background:#b7950b;color:#fff}
+.tl{position:relative;height:26px;background:var(--bg);border:1px solid var(--bd);border-radius:6px;margin:8px 0 2px;overflow:hidden}
+.tl span{position:absolute;top:0;bottom:0}.tl .lane2{top:5px;bottom:5px;border-radius:3px}
+.tl .p{background:repeating-linear-gradient(45deg,#b9bec9 0 4px,transparent 4px 8px)}
+.tlax{position:relative;height:14px;font-size:10px;color:var(--mut)}.tlax span{position:absolute;transform:translateX(-50%)}
+.leg{display:flex;flex-wrap:wrap;gap:4px 12px;font-size:12px;color:var(--mut);margin:2px 0 6px}.leg i{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:4px;vertical-align:-1px}
 .dayblk{border-top:1px solid var(--bd);padding:12px 0 4px}.dayblk:first-child{border-top:0}
 .dayhead{display:flex;justify-content:space-between;align-items:baseline;gap:8px}.dayhead b{font-size:15px}
 .lessons{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0}.les{min-width:44px;padding:7px 8px;border-radius:8px;border:1px solid var(--pri);background:var(--pri);color:#fff;font-weight:600}
@@ -128,6 +136,12 @@ dialog{border:0;border-radius:12px;width:min(92vw,420px);background:var(--card);
 </main>
 <div id="toast"></div>
 
+<dialog id="odlg"><form method="dialog">
+ <b>Erfassung läuft noch</b>
+ <p class="hint" id="otext"></p>
+ <label>Wann hast du aufgehört?</label><input type="datetime-local" id="oend">
+ <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:12px"><button value="cancel" class="btn sec">Weiterlaufen lassen</button><button value="ok" class="btn">Beenden</button></div>
+</form></dialog>
 <dialog id="vdlg"><form method="dialog">
  <b>Ab wann gilt der geänderte Stundenplan?</b>
  <div class="hint">Zeiten vor diesem Datum werden nicht neu berechnet.</div>
@@ -152,9 +166,12 @@ dialog{border:0;border-radius:12px;width:min(92vw,420px);background:var(--card);
 <script>
 /* ===== Konfiguration: hier die Anwendungs-ID aus dem Azure-Portal eintragen ===== */
 const CLIENT_ID = "676671418561-u8sq0lmimfsnqa1oqno6vl92d0d1imcj.apps.googleusercontent.com";   // Google OAuth-Client-ID (…apps.googleusercontent.com)
-const VERSION = "0.8";
+const VERSION = "0.9";
 
-const CATS = {U:"Unterricht", V:"Vorbereitung", K:"Korrekturen", KF:"Konferenz", E:"Elternarbeit", O:"Organisation/Sonstiges"};
+const CATS = {U:"Unterricht", V:"Vorbereitung", K:"Korrekturen", KF:"Konferenz", E:"Elternarbeit", O:"Organisation/Sonstiges", S:"Präsenz in der Schule"};
+const LABEL = {...CATS, P:"Pause (zählt nicht)", TT:"Unterricht (Stundenplan)"};
+const PAUSE_MIN = 15;   // Pausen ab 15 Min. am Stück sind Ruhepausen, kürzere zählen als Arbeitszeit (Verteilzeit)
+const COL = {TT:"#2b5797", U:"#5b8bd6", V:"#1e8449", K:"#d68910", KF:"#7d3c98", E:"#c0392b", O:"#7f8c8d", S:"#17a589", P:"#b9bec9"};
 const DAYS = ["Mo","Di","Mi","Do","Fr"];
 const KEY = "arbeitszeit-daten";
 const pad = n => String(n).padStart(2,"0");
@@ -195,22 +212,59 @@ function toast(t){ const el = document.getElementById("toast"); el.textContent =
 /* ===== Erfassen ===== */
 function closeRunning(now){
   const r = data.running;
+  if (r.cat === "P"){ endPause(now); return; }
   if (r.cat && now - r.start > 30000)   // unter 30 s nicht speichern (Fehltipp)
     data.entries.push({id:uid(), cat:r.cat, start:r.start, end:now, note:"", upd:now});
 }
+function endPause(now){   // ab 15 Min. Ruhepause, sonst Arbeitszeit (Verteilzeit)
+  const r = data.running, d = now - r.start; if (d <= 30000) return;
+  data.entries.push(d >= PAUSE_MIN*60000
+    ? {id:uid(), cat:"P", start:r.start, end:now, note:"Ruhepause", upd:now}
+    : {id:uid(), cat:"S", start:r.start, end:now, note:`kurze Pause < ${PAUSE_MIN} Min. (zählt als Arbeitszeit)`, upd:now});
+}
+const inSchool = () => data.running.cat === "S" || data.running.cat === "P" || !!data.running.school;
 function startCat(cat){
-  const now = Date.now();
-  if (data.running.cat === cat) return;
+  const now = Date.now(), r = data.running;
+  if (r.cat === cat) return;
+  const school = cat === "S" || inSchool();
   closeRunning(now);
-  data.running = {cat, start:now, upd:now};
+  data.running = {cat, start:now, upd:now, school};
+  save();
+}
+function pauseToggle(){
+  const now = Date.now(), r = data.running;
+  if (r.cat === "P"){ closeRunning(now); data.running = {cat:"S", start:now, upd:now, school:true}; save(); return; }
+  if (!inSchool()) return;
+  closeRunning(now);
+  data.running = {cat:"P", start:now, upd:now, school:true};
   save();
 }
 function stop(){
-  const now = Date.now();
-  if (!data.running.cat) return;
+  const now = Date.now(), r = data.running;
+  if (!r.cat) return;
   closeRunning(now);
-  data.running = {cat:null, start:0, upd:now};
+  // Tätigkeit innerhalb der Schulzeit beendet → zurück zu „In der Schule“; sonst Feierabend
+  data.running = (r.school && r.cat !== "S" && r.cat !== "P") ? {cat:"S", start:now, upd:now, school:true} : {cat:null, start:0, upd:now};
   save();
+}
+function endAllAt(t){
+  closeRunning(t); data.running = {cat:null, start:0, upd:Date.now()}; save();
+}
+function checkForgotten(){
+  const r = data.running; if (!r.cat) return;
+  const t0 = new Date(); t0.setHours(0,0,0,0);
+  if (r.start >= +t0) return;
+  const d = document.getElementById("odlg"); if (d.open) return;
+  const st = new Date(r.start), sug = new Date(st); sug.setHours(Math.max(st.getHours() + 1, 16), 0, 0, 0);
+  document.getElementById("otext").textContent = `„${LABEL[r.cat] || r.cat}“ läuft seit ${st.toLocaleString("de-DE").slice(0,-3)}. Wahrscheinlich hast du vergessen zu stoppen.`;
+  document.getElementById("oend").value = toInput(+sug);
+  d.onclose = () => {
+    if (d.returnValue !== "ok") return;
+    const t = new Date(document.getElementById("oend").value).getTime();
+    if (!(t > r.start)) { alert("Das Ende muss nach dem Beginn liegen."); return; }
+    endAllAt(Math.min(t, Date.now()));
+  };
+  d.returnValue = ""; d.showModal();
 }
 /* Vertretungsstunde: bucht die laufende bzw. zuletzt beendete Stunde laut Stundenzeiten als „Unterricht (zusätzlich)“ */
 let lastVt = null;
@@ -355,6 +409,26 @@ function sickDays(from, to){
   return n;
 }
 let listDays = 28;
+function dayTimeline(d, entries){
+  const les = lessonIntervals(d), iv = [];
+  entries.forEach(e => iv.push({cat:e.cat, a:e.start, b:e.end}));
+  if (data.running.cat){ const t0 = new Date(d); t0.setHours(0,0,0,0);
+    if (data.running.start >= +t0 && data.running.start < +t0 + 86400000) iv.push({cat:data.running.cat, a:data.running.start, b:Date.now()}); }
+  les.forEach(([a,b]) => iv.push({cat:"TT", a, b}));
+  if (!iv.length) return "";
+  const lo0 = Math.min(...iv.map(x => x.a)), hi0 = Math.max(...iv.map(x => x.b));
+  const lo = new Date(lo0); lo.setMinutes(0,0,0); const hi = new Date(hi0); if (hi.getMinutes() || hi.getSeconds()) { hi.setHours(hi.getHours()+1, 0, 0, 0); }
+  const L = +lo, W = Math.max(3600000, +hi - L), pc = t => ((t - L) / W * 100).toFixed(2);
+  const f = x => new Date(x).toLocaleTimeString("de-DE",{hour:"2-digit",minute:"2-digit"});
+  const bar = x => `<span class="${x.cat === "S" ? "" : "lane2"} ${x.cat === "P" ? "p" : ""}" style="left:${pc(x.a)}%;width:${(Math.max(x.b - x.a, 0) / W * 100).toFixed(2)}%;${x.cat === "P" ? "" : "background:" + COL[x.cat]}" title="${LABEL[x.cat]} ${f(x.a)}–${f(x.b)}"></span>`;
+  const order = x => x.cat === "S" ? 0 : x.cat === "P" ? 2 : 1;
+  let ax = ""; for (let t = L; t <= L + W; t += 3600000) ax += `<span style="left:${pc(t)}%">${new Date(t).getHours()}</span>`;
+  const t0 = new Date(d); t0.setHours(0,0,0,0); const sm = sums(t0, new Date(+t0 + 86400000));
+  const leg = ["TT","U","S","V","K","KF","E","O","P"].filter(k => sm[k] > 0.5)
+    .map(k => `<span><i style="background:${COL[k]}"></i>${k === "TT" ? "Unterricht" : k === "U" ? "Unterricht zusätzl." : k === "S" ? "Präsenz" : k === "P" ? "Pause" : CATS[k]} ${hm(sm[k])}</span>`).join("");
+  return `<div class="tl">${iv.sort((a,b) => order(a) - order(b)).map(bar).join("")}</div><div class="tlax">${ax}</div>`
+    + `<div class="leg"><span><b>Gesamt ${hm(total(sm))}</b></span>${leg}</div>`;
+}
 function dayBlock(d, entries){
   const ds = iso(d), r = dayRec(d), school = isSchoolDay(d), planned = school ? plannedLessons(d) : [];
   const v = planFor(d), cred = school ? dayMin(creditedLessons(d), v.periods) : 0;
@@ -373,8 +447,9 @@ function dayBlock(d, entries){
       + [1,2,3,4,5,6,7].map(i => `<option value="${i}" ${sv===String(i)?"selected":""}>🤒 krank ab ${i+1}. Stunde</option>`).join("") + "</select>"
       + (sv === "full" ? `<span class="hint">bis</span><input type="date" id="su${ds}" value="${ds}"><button type="button" class="btn sec" style="padding:8px 10px" onclick="sickUntil('${ds}')">Übernehmen</button>` : "") + "</div>";
   }
+  h += dayTimeline(d, entries);
   entries.forEach(e => {
-    h += `<div class="row"><span><b>${CATS[e.cat]||e.cat}</b><br><small>${f(e.start)}–${f(e.end)} · ${hm((e.end-e.start)/60000)}${e.note?" · "+esc(e.note):""}</small></span>
+    h += `<div class="row"><span><b>${LABEL[e.cat]||e.cat}</b><br><small>${f(e.start)}–${f(e.end)} · ${hm((e.end-e.start)/60000)}${e.note?" · "+esc(e.note):""}</small></span>
       <button class="btn sec" onclick="editEntry('${e.id}')">✎</button></div>`;
   });
   return h + "</div>";
@@ -426,22 +501,52 @@ function period(){
   }
   return {from, to, label};
 }
+/* Zeitachse: jede Minute zählt nur einmal. „Präsenz in der Schule“ zählt nur dort,
+   wo zur selben Zeit kein Stundenplan-Unterricht und keine andere Tätigkeit liegt. */
+const atTime = (d, t) => { const m = toMin(t); const x = new Date(d); x.setHours(Math.floor(m/60), m%60, 0, 0); return x.getTime(); };
+function lessonIntervals(d){
+  if (iso(d) < data.settings.startDate || !isSchoolDay(d)) return [];
+  const P = planFor(d).periods;
+  return creditedLessons(d).filter(i => toMin(P[i][0]) !== null && toMin(P[i][1]) !== null).map(i => [atTime(d, P[i][0]), atTime(d, P[i][1])]);
+}
+function allEntries(){
+  const l = data.entries.filter(e => !e.del);
+  if (data.running.cat) l.push({id:"_run", cat:data.running.cat, start:data.running.start, end:Date.now(), note:""});
+  return l;
+}
+function mergeIv(iv){
+  iv = iv.filter(x => x[1] > x[0]).sort((a,b) => a[0]-b[0]); const o = [];
+  iv.forEach(x => { const l = o[o.length-1]; if (l && x[0] <= l[1]) l[1] = Math.max(l[1], x[1]); else o.push([x[0], x[1]]); });
+  return o;
+}
+const overlapMin = (a, b, busy) => busy.reduce((s, [x,y]) => s + Math.max(0, Math.min(b, y) - Math.max(a, x)), 0);
+function schoolNet(e, list){   // Minuten einer Präsenz-Zeit ohne Überschneidung mit Unterricht/anderen Tätigkeiten
+  const d = new Date(e.start); d.setHours(12,0,0,0);
+  const busy = mergeIv(lessonIntervals(d).concat(list.filter(x => x !== e && x.cat !== "S" && x.cat !== "P").map(x => [x.start, x.end])));
+  return Math.max(0, (e.end - e.start) - overlapMin(e.start, e.end, busy)) / 60000;
+}
 function sums(from, to){
-  const r = {}; Object.keys(CATS).forEach(k => r[k] = 0);
-  const add = (cat, s, e) => { if (s >= +from && s < +to) r[cat] = (r[cat]||0) + (e - s)/60000; };
-  data.entries.filter(e => !e.del).forEach(e => add(e.cat, e.start, e.end));
-  if (data.running.cat) add(data.running.cat, data.running.start, Date.now());
+  const r = {P:0}; Object.keys(CATS).forEach(k => r[k] = 0);
+  const list = allEntries();
+  list.forEach(e => {
+    if (e.start < +from || e.start >= +to) return;
+    r[e.cat] = (r[e.cat] || 0) + (e.cat === "S" ? schoolNet(e, list) : (e.end - e.start)/60000);
+  });
   r.TT = ttMinutes(from, to);
   return r;
 }
-const total = s => Object.values(s).reduce((a,b) => a+b, 0);
+const total = s => Object.entries(s).reduce((a,[k,v]) => k === "P" ? a : a + v, 0);
 
 /* ===== Darstellung ===== */
 function render(){
   // Erfassen
-  document.getElementById("cats").innerHTML = Object.entries(CATS).map(([k,v]) =>
-    `<button class="cat ${data.running.cat===k?"on":""}" onclick="startCat('${k}')">${v}</button>`).join("")
-    + `<button class="stop" onclick="stop()">■ Stopp</button>`;
+  const R = data.running, sch = inSchool();
+  document.getElementById("cats").innerHTML =
+    `<button class="cat school ${R.cat==="S"?"on":""}" onclick="startCat('S')">🏫 In der Schule${sch ? " ✓" : ""}</button>`
+    + Object.entries(CATS).filter(([k]) => k !== "S").map(([k,v]) =>
+    `<button class="cat ${R.cat===k?"on":""}" onclick="startCat('${k}')">${v}</button>`).join("")
+    + (sch ? `<button class="pausebtn ${R.cat==="P"?"on":""}" onclick="pauseToggle()">${R.cat==="P" ? "▶ Pause beenden" : "☕ Pause"}</button>` : "")
+    + `<button class="stop" onclick="stop()">■ Stopp${R.school && R.cat !== "S" && R.cat !== "P" ? " – zurück zu „In der Schule“" : sch ? " – Schultag beenden" : ""}</button>`;
   const t0 = new Date(); t0.setHours(0,0,0,0); const t1 = new Date(t0); t1.setDate(t0.getDate()+1);
   const st = sums(t0, t1), soll = sollMinutes(t0, t1);
   document.getElementById("today").textContent = `Heute: ${hm(total(st))} (Stundenplan ${hm(st.TT)})` + (soll ? ` · Soll ${hm(soll)}` : "");
@@ -474,11 +579,12 @@ function render(){
     + (running ? `<div class="row"><span class="hint">Soll im gesamten Zeitraum</span><span class="hint">${hm(sollAll)}</span></div>` : "")
     + (sickDays(p.from, p.to) > 0 ? `<div class="row"><span>Krankheitstage (Soll entfällt)</span><b>${String(Math.round(sickDays(p.from, p.to)*10)/10).replace(".", ",")}</b></div>` : "")
     + (+p.from > Date.now() ? `<div class="hint">Zeitraum liegt in der Zukunft.</div>` : "");
-  const rows = [["TT","Unterricht (Stundenplan)"], ...Object.entries(CATS).map(([k,v]) => [k, k==="U" ? "Unterricht (zusätzlich)" : v])];
+  const rows = [["TT","Unterricht (Stundenplan)"], ["U","Unterricht (zusätzlich)"], ["S","Präsenz in der Schule"], ...Object.entries(CATS).filter(([k]) => k !== "U" && k !== "S")];
   const mx = Math.max(1, ...rows.map(([k]) => s[k]));
   document.getElementById("stats").innerHTML = rows.map(([k,v]) =>
     `<div class="row" style="display:block"><div style="display:flex;justify-content:space-between"><span>${v}</span><b>${hm(s[k])}</b></div>
-     <div class="bar" style="width:${s[k]/mx*100}%"></div></div>`).join("");
+     <div class="bar" style="width:${s[k]/mx*100}%;background:${COL[k]}"></div></div>`).join("")
+    + (s.P ? `<div class="row"><span class="hint">Ruhepausen (zählen nicht)</span><span class="hint">${hm(s.P)}</span></div>` : "");
 
   // Einstellungen
   const S = data.settings;
@@ -567,7 +673,10 @@ function askFrom(ev){
 }
 function tick(){
   const r = data.running;
-  document.getElementById("curCat").textContent = r.cat ? "Läuft: " + CATS[r.cat] : "Keine Erfassung aktiv";
+  const pm = r.cat === "P" ? (Date.now() - r.start)/60000 : 0;
+  document.getElementById("curCat").textContent = !r.cat ? "Keine Erfassung aktiv"
+    : r.cat === "P" ? (pm >= PAUSE_MIN ? "☕ Ruhepause ✓ (zählt nicht als Arbeitszeit)" : `☕ Pause – zählt erst ab ${PAUSE_MIN} Min. als Ruhepause`)
+    : "Läuft: " + (r.cat === "S" ? "🏫 In der Schule" : CATS[r.cat] + (r.school ? " (in der Schule)" : ""));
   if (r.cat){ const s = Math.floor((Date.now() - r.start)/1000);
     document.getElementById("curTime").textContent = `${pad(Math.floor(s/3600))}:${pad(Math.floor(s/60)%60)}:${pad(s%60)}`; }
   else document.getElementById("curTime").textContent = "--:--:--";
@@ -582,7 +691,7 @@ document.getElementById("nav").onclick = e => {
 };
 document.querySelectorAll("[data-p]").forEach(b => b.onclick = () => { per.t = b.dataset.p; per.o = 0; render(); });
 const catOptions = Object.entries(CATS).map(([k,v]) => `<option value="${k}">${v}</option>`).join("");
-document.getElementById("fcat").innerHTML = catOptions;
+document.getElementById("fcat").innerHTML = catOptions + `<option value="P">${LABEL.P}</option>`;
 document.getElementById("qcat").innerHTML = catOptions;
 document.getElementById("qcat").value = "E";
 
@@ -730,11 +839,11 @@ async function sync(){
   } catch(e){ setStatus("offline – lokal gespeichert"); showStatus(); }
   syncing = false; if (again){ again = false; sync(); }
 }
-document.addEventListener("visibilitychange", () => { if (!document.hidden) sync(); });
+document.addEventListener("visibilitychange", () => { if (!document.hidden){ sync(); checkForgotten(); } });
 setInterval(sync, 60000);
 
 (async () => {
-  render(); sync();
+  render(); sync(); checkForgotten();
   if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js");
 })();
 </script>
