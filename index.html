@@ -1,0 +1,491 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Arbeitszeit</title>
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icon.svg">
+<meta name="theme-color" content="#2b5797">
+<script src="https://alcdn.msauth.net/browser/2.38.3/js/msal-browser.min.js"></script>
+<style>
+:root{--bg:#f4f6fa;--card:#fff;--tx:#1d2330;--mut:#6b7385;--pri:#2b5797;--red:#c0392b;--grn:#1e8449;--bd:#dde2ec}
+@media (prefers-color-scheme:dark){:root{--bg:#14171f;--card:#1f2430;--tx:#e8ebf2;--mut:#9aa3b5;--pri:#5b8bd6;--red:#e2614f;--grn:#4cc27a;--bd:#333a4a}}
+*{box-sizing:border-box}body{margin:0;font-family:system-ui,Segoe UI,Roboto,sans-serif;background:var(--bg);color:var(--tx)}
+header{background:var(--pri);color:#fff;padding:12px 16px;display:flex;justify-content:space-between;align-items:center}
+header h1{font-size:18px;margin:0}#status{font-size:12px;opacity:.9}
+nav{display:flex;background:var(--card);border-bottom:1px solid var(--bd)}nav button{flex:1;padding:12px 4px;border:0;background:none;color:var(--mut);font-size:14px}
+nav button.on{color:var(--pri);border-bottom:3px solid var(--pri);font-weight:600}
+main{max-width:640px;margin:0 auto;padding:16px}.card{background:var(--card);border:1px solid var(--bd);border-radius:12px;padding:16px;margin-bottom:16px}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.cat{padding:20px 8px;font-size:16px;border-radius:12px;border:2px solid var(--bd);background:var(--card);color:var(--tx);font-weight:600}
+.cat.on{background:var(--pri);color:#fff;border-color:var(--pri)}
+.stop{grid-column:1/-1;background:var(--red);color:#fff;border:0;padding:20px;font-size:18px;border-radius:12px;font-weight:700}
+.big{font-size:34px;font-weight:700;text-align:center;margin:4px 0}.mut{color:var(--mut);font-size:14px;text-align:center}
+.hint{color:var(--mut);font-size:13px;margin:4px 0}
+.btn{background:var(--pri);color:#fff;border:0;border-radius:8px;padding:10px 14px;font-size:15px}.btn.sec{background:none;color:var(--pri);border:1px solid var(--pri)}
+.row{display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid var(--bd);gap:8px}.row:last-child{border:0}
+.day{font-weight:700;margin-top:12px;color:var(--mut);font-size:13px}
+label{display:block;font-size:14px;margin:10px 0 4px}input,select,textarea{width:100%;padding:9px;border:1px solid var(--bd);border-radius:8px;background:var(--bg);color:var(--tx);font-size:15px}
+input[type=checkbox]{width:auto;margin-right:8px}
+.quick{display:grid;grid-template-columns:1fr auto auto auto;gap:8px;align-items:center}
+.tt{display:grid;grid-template-columns:34px 1fr auto;gap:6px 8px;align-items:center}.tt.ab{grid-template-columns:34px 1fr 1fr}
+.pnav{display:flex;justify-content:space-between;align-items:center;margin:12px 0}.seg{display:flex;gap:6px;flex-wrap:wrap}.seg button{flex:1;padding:10px 6px}
+dialog{border:0;border-radius:12px;width:min(92vw,420px);background:var(--card);color:var(--tx)}dialog::backdrop{background:#0007}
+.bar{height:8px;background:var(--pri);border-radius:4px;margin-top:4px}
+.plus{color:var(--grn)}.minus{color:var(--red)}
+#toast{position:fixed;left:50%;bottom:20px;transform:translateX(-50%);background:#222;color:#fff;padding:10px 16px;border-radius:20px;font-size:14px;opacity:0;transition:opacity .3s;pointer-events:none}
+#toast.show{opacity:.95}
+</style>
+</head>
+<body>
+<header><h1>⏱ Arbeitszeit</h1><span id="status">lokal</span></header>
+<nav id="nav">
+ <button data-t="erf" class="on">Erfassen</button><button data-t="ein">Einträge</button><button data-t="aus">Auswertung</button><button data-t="set">Einstellungen</button>
+</nav>
+<main>
+ <section id="erf">
+  <div class="card"><div class="mut" id="curCat">Keine Erfassung aktiv</div><div class="big" id="curTime">--:--:--</div><div class="mut" id="today"></div></div>
+  <div class="grid" id="cats"></div>
+  <div class="card" style="margin-top:16px">
+   <b>Schnellerfassung</b><div class="hint">Bucht die Minuten rückwirkend bis jetzt, z. B. für ein kurzes Telefonat.</div>
+   <div class="quick"><select id="qcat"></select>
+    <button class="btn" onclick="quick(10)">+10</button><button class="btn" onclick="quick(15)">+15</button><button class="btn" onclick="quick(30)">+30</button></div>
+  </div>
+ </section>
+ <section id="ein" hidden>
+  <button class="btn" onclick="editEntry()">+ Eintrag nachtragen</button>
+  <div class="card" style="margin-top:12px" id="list"></div>
+ </section>
+ <section id="aus" hidden>
+  <div class="seg"><button data-p="w">Woche</button><button data-p="m">Monat</button><button data-p="h">Halbjahr</button><button data-p="y">Jahr</button><button data-p="s">Schuljahr</button></div>
+  <div class="pnav"><button class="btn sec" onclick="per.o--;render()">◀</button><b id="plabel"></b><button class="btn sec" onclick="per.o++;render()">▶</button></div>
+  <div class="card" id="saldo"></div>
+  <div class="card" id="stats"></div>
+  <button class="btn sec" onclick="csv()">Als CSV (Excel) exportieren</button>
+ </section>
+ <section id="set" hidden>
+  <div class="card">
+   <b>OneDrive</b><p id="acct" class="hint"></p>
+   <button class="btn" id="login" onclick="login()">Mit OneDrive verbinden</button>
+   <button class="btn sec" id="logout" onclick="logout()" hidden>Abmelden</button>
+  </div>
+  <div class="card">
+   <b>Stundenplan</b>
+   <div class="hint">Unterrichtszeiten je Wochentag, durch Komma getrennt, z. B. <i>07:30-08:15, 08:25-09:10</i>. Sie werden an jedem Schultag automatisch als Unterricht gutgeschrieben (nicht an Feiertagen und eingetragenen Ferien).</div>
+   <label><input type="checkbox" id="ab" onchange="renderTT()">Wechselnde A/B-Wochen</label>
+   <div id="abbox" hidden><label>Ein Datum aus einer A-Woche</label><input type="date" id="abref"></div>
+   <div id="tt" class="tt" style="margin-top:10px"></div>
+  </div>
+  <div class="card">
+   <b>Soll-Arbeitszeit</b>
+   <label>Wochenarbeitszeit bei Vollzeit (Std.)</label><input type="number" id="weekly" step="0.5" min="0">
+   <label>Beschäftigungsumfang (%)</label><input type="number" id="umfang" min="0" max="100">
+   <label>Urlaubstage pro Jahr</label><input type="number" id="urlaub" min="0" max="60">
+   <div class="hint">Berechnung: Jahres-Soll = (Arbeitstage Mo–Fr im Schuljahr − Feiertage − Urlaubstage) × Tages-Soll. Dieses Jahres-Soll wird auf die Schultage verteilt, weil Lehrkräfte die unterrichtsfreie Zeit über die Schulwochen ausgleichen. Die Schulferien werden dafür automatisch geladen.</div>
+  </div>
+  <div class="card">
+   <b>Schulferien Sachsen-Anhalt (automatisch)</b>
+   <div class="hint">Werden nur auf Knopfdruck einmalig aus dem Internet geladen und danach lokal und in OneDrive gespeichert. Die App braucht dafür sonst keine Internetverbindung. Am besten einmal pro Schuljahr laden (es werden das laufende und das nächste Schuljahr geholt).</div>
+   <div id="hol"></div>
+   <button class="btn sec" onclick="fetchHolidays()">Ferien laden</button>
+  </div>
+  <div class="card">
+   <b>Freie Tage und Erfassungsbeginn</b>
+   <label>Erfassung ab Datum</label><input type="date" id="sdate">
+   <label>Zusätzliche freie Tage: bewegliche Ferientage, pädagogische Tage – oder Ferien von Hand, falls der Abgleich ausfällt (ein Zeitraum je Zeile, z. B. 2027-05-14 oder 2026-10-13 bis 2026-10-24)</label>
+   <textarea id="free" rows="6"></textarea>
+   <div class="hint">Gesetzliche Feiertage in Sachsen-Anhalt werden automatisch berücksichtigt.</div>
+  </div>
+  <button class="btn" onclick="saveSettings()">Einstellungen speichern</button>
+ </section>
+</main>
+<div id="toast"></div>
+
+<dialog id="dlg"><form method="dialog" id="frm">
+ <b id="dtitle">Eintrag</b>
+ <label>Tätigkeit</label><select id="fcat"></select>
+ <label>Beginn</label><input type="datetime-local" id="fstart" required>
+ <label>Ende</label><input type="datetime-local" id="fend" required>
+ <label>Notiz</label><input id="fnote">
+ <div style="display:flex;gap:8px;margin-top:16px;justify-content:space-between">
+  <button type="button" class="btn sec" id="fdel" style="color:var(--red);border-color:var(--red)">Löschen</button>
+  <span><button value="cancel" class="btn sec" formnovalidate>Abbrechen</button> <button value="ok" class="btn">Speichern</button></span>
+ </div>
+</form></dialog>
+
+<script>
+/* ===== Konfiguration: hier die Anwendungs-ID aus dem Azure-Portal eintragen ===== */
+const CLIENT_ID = "HIER-CLIENT-ID-EINTRAGEN";
+const VERSION = "0.3.2";
+
+const CATS = {U:"Unterricht", V:"Vorbereitung", K:"Korrekturen", KF:"Konferenz", E:"Elternarbeit", O:"Organisation/Sonstiges"};
+const DAYS = ["Mo","Di","Mi","Do","Fr"];
+const KEY = "arbeitszeit-daten";
+const pad = n => String(n).padStart(2,"0");
+const iso = d => `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2,7);
+const hm = min => { const s = min < 0 ? "−" : ""; min = Math.abs(Math.round(min)); return `${s}${Math.floor(min/60)}:${pad(min%60)} h`; };
+const syYear = d => d.getMonth() >= 7 ? d.getFullYear() : d.getFullYear()-1;   // Schuljahr beginnt am 1.8.
+const esc = s => String(s).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+
+function defSettings(){ return {tt:{A:["","","","",""], B:["","","","",""]}, ab:false, abRef:"",
+  weekly:40, umfang:100, urlaub:30, startDate:`${syYear(new Date())}-08-01`, free:"", upd:0}; }
+function blank(){ return {entries:[], running:{cat:null,start:0,upd:0}, settings:defSettings(), hol:{ranges:[], fetched:0}}; }
+function normalize(d){
+  d.entries = d.entries || []; d.running = d.running || {cat:null,start:0,upd:0};
+  d.hol = d.hol && Array.isArray(d.hol.ranges) ? d.hol : {ranges:[], fetched:0};
+  const s = Object.assign(defSettings(), d.settings || {});
+  s.tt = Object.assign({A:["","","","",""], B:["","","","",""]}, s.tt || {});
+  delete s.deputat; delete s.lessonMin;          // Altlasten aus v0.1
+  d.settings = s; return d;
+}
+function load(){ try { return normalize(JSON.parse(localStorage.getItem(KEY)) || blank()); } catch(e){ return blank(); } }
+let data = load();
+function persist(){ try { localStorage.setItem(KEY, JSON.stringify(data)); } catch(e){} }
+function save(){ persist(); render(); queueSync(); }
+function toast(t){ const el = document.getElementById("toast"); el.textContent = t; el.classList.add("show"); clearTimeout(el._t); el._t = setTimeout(() => el.classList.remove("show"), 2200); }
+
+/* ===== Erfassen ===== */
+function closeRunning(now){
+  const r = data.running;
+  if (r.cat && now - r.start > 30000)   // unter 30 s nicht speichern (Fehltipp)
+    data.entries.push({id:uid(), cat:r.cat, start:r.start, end:now, note:"", upd:now});
+}
+function startCat(cat){
+  const now = Date.now();
+  if (data.running.cat === cat) return;
+  closeRunning(now);
+  data.running = {cat, start:now, upd:now};
+  save();
+}
+function stop(){
+  const now = Date.now();
+  if (!data.running.cat) return;
+  closeRunning(now);
+  data.running = {cat:null, start:0, upd:now};
+  save();
+}
+function quick(min){
+  const now = Date.now(), cat = document.getElementById("qcat").value;
+  data.entries.push({id:uid(), cat, start:now - min*60000, end:now, note:"Schnellerfassung", upd:now});
+  save(); toast(`${min} Min. ${CATS[cat]} erfasst`);
+}
+
+/* ===== Kalender: Feiertage Sachsen-Anhalt, Ferien ===== */
+const holCache = {};
+function holidays(y){
+  if (holCache[y]) return holCache[y];
+  const a=y%19,b=Math.floor(y/100),c=y%100,d=Math.floor(b/4),e=b%4,f=Math.floor((b+8)/25),g=Math.floor((b-f+1)/3),
+    h=(19*a+b-d-g+15)%30,i=Math.floor(c/4),k=c%4,l=(32+2*e+2*i-h-k)%7,m=Math.floor((a+11*h+22*l)/451),
+    mo=Math.floor((h+l-7*m+114)/31), da=((h+l-7*m+114)%31)+1;
+  const ost = new Date(y, mo-1, da), off = n => { const x = new Date(ost); x.setDate(x.getDate()+n); return iso(x); };
+  return holCache[y] = new Set([`${y}-01-01`,`${y}-01-06`, off(-2), off(1), `${y}-05-01`, off(39), off(50),
+    `${y}-10-03`,`${y}-10-31`,`${y}-12-25`,`${y}-12-26`]);
+}
+let freeCache = {src:null, r:[]};
+function freeRanges(){
+  const src = (data.settings.free || "") + "#" + data.hol.fetched;
+  if (freeCache.src !== src) freeCache = {src, r: (data.settings.free || "").split("\n")
+    .map(l => l.match(/(\d{4}-\d\d-\d\d)(?:\s*(?:bis|-|–)\s*(\d{4}-\d\d-\d\d))?/))
+    .filter(Boolean).map(m => [m[1], m[2]||m[1]]).concat(data.hol.ranges.map(r => [r[0], r[1]]))};
+  return freeCache.r;
+}
+/* Schulferien Sachsen-Anhalt automatisch von der OpenHolidays API (openholidaysapi.org) */
+const HOL_URL = "https://openholidaysapi.org/SchoolHolidays?countryIsoCode=DE&subdivisionCode=DE-ST&languageIsoCode=DE";
+async function fetchHolidays(){   // nur auf Knopfdruck, danach wird lokal gearbeitet
+  const y = syYear(new Date());
+  try {
+    const r = await fetch(`${HOL_URL}&validFrom=${y}-08-01&validTo=${y+2}-07-31`, {cache:"no-store"});
+    if (!r.ok) throw new Error(r.status);
+    const list = await r.json();
+    const ranges = (Array.isArray(list) ? list : []).filter(h => h.startDate && h.endDate).map(h => {
+      const n = Array.isArray(h.name) ? ((h.name.find(x => x.language === "DE") || h.name[0] || {}).text || "") : (h.name || "");
+      return [h.startDate.slice(0,10), h.endDate.slice(0,10), n];
+    }).sort((a,b) => a[0] < b[0] ? -1 : 1);
+    if (!ranges.length) throw new Error("leer");
+    const keep = data.hol.ranges.filter(r => r[1] < `${y}-08-01`);   // vergangene Schuljahre behalten
+    data.hol = {ranges:keep.concat(ranges), fetched:Date.now()};
+    save(); toast(`${ranges.length} Ferientermine geladen`);
+  } catch(e){
+    toast("Laden fehlgeschlagen – keine Internetverbindung? Bisherige Termine bleiben erhalten.");
+    renderHol();
+  }
+}
+function renderHol(){
+  const el = document.getElementById("hol"); if (!el) return;
+  const h = data.hol, y = syYear(new Date()), from = `${y}-08-01`, to = `${y+2}-07-31`;
+  const f = x => new Date(x + "T12:00").toLocaleDateString("de-DE",{day:"2-digit",month:"2-digit",year:"numeric"});
+  const rows = h.ranges.filter(r => r[1] >= from && r[0] <= to);
+  el.innerHTML = (rows.length ? rows.map(r => `<div class="row"><span>${esc(r[2]||"Ferien")}</span><small>${f(r[0])} – ${f(r[1])}</small></div>`).join("")
+      : `<p class="hint">Noch keine Ferien geladen.</p>`)
+    + `<p class="hint">${h.fetched ? "Geladen am: " + new Date(h.fetched).toLocaleString("de-DE").slice(0,-3) : "Noch nicht geladen – bitte „Ferien laden“ tippen."} Quelle: openholidaysapi.org</p>`;
+}
+const isWorkday = d => d.getDay() >= 1 && d.getDay() <= 5 && !holidays(d.getFullYear()).has(iso(d));
+const isSchoolDay = d => { if (!isWorkday(d)) return false; const ds = iso(d); return !freeRanges().some(([a,b]) => ds >= a && ds <= b); };
+function eachDay(from, to, fn){ for (let d = new Date(from); d < to; d.setDate(d.getDate()+1)) fn(new Date(d)); }
+const endOfToday = () => { const t = new Date(); t.setHours(0,0,0,0); t.setDate(t.getDate()+1); return t; };
+
+/* ===== Stundenplan ===== */
+function rangeMin(str){
+  let sum = 0;
+  for (const m of (str||"").matchAll(/(\d{1,2})[:.](\d{2})\s*[-–]\s*(\d{1,2})[:.](\d{2})/g)){
+    const v = (+m[3]*60 + +m[4]) - (+m[1]*60 + +m[2]); if (v > 0) sum += v;
+  }
+  return sum;
+}
+function weekType(d){
+  const s = data.settings; if (!s.ab || !s.abRef) return "A";
+  const mon = x => { const y = new Date(x); y.setHours(12,0,0,0); y.setDate(y.getDate() - (y.getDay()+6)%7); return y; };
+  const w = Math.round((mon(d) - mon(new Date(s.abRef + "T12:00"))) / 604800000);
+  return Math.abs(w) % 2 === 0 ? "A" : "B";
+}
+function ttMinutes(from, to){   // nur bis heute gutschreiben
+  const s = data.settings, end = new Date(Math.min(+to, +endOfToday())); let sum = 0;
+  eachDay(from, end, d => { if (iso(d) >= s.startDate && isSchoolDay(d)) sum += rangeMin(s.tt[weekType(d)][d.getDay()-1]); });
+  return sum;
+}
+
+/* ===== Soll ===== */
+const sollCache = {};
+function sollPerSchoolDay(y){
+  const s = data.settings, key = [y, s.weekly, s.umfang, s.urlaub, s.free, data.hol.fetched].join("|");
+  if (sollCache[key] !== undefined) return sollCache[key];
+  let W = 0, S = 0;
+  eachDay(new Date(y,7,1), new Date(y+1,7,1), d => { if (isWorkday(d)){ W++; if (isSchoolDay(d)) S++; } });
+  const year = Math.max(0, W - (+s.urlaub||0)) * (+s.weekly||0) * 60 / 5 * (+s.umfang||0) / 100;
+  return sollCache[key] = S ? year / S : 0;
+}
+function sollMinutes(from, to){
+  const s = data.settings; let sum = 0;
+  eachDay(from, to, d => { if (iso(d) >= s.startDate && isSchoolDay(d)) sum += sollPerSchoolDay(syYear(d)); });
+  return sum;
+}
+
+/* ===== Auswertung ===== */
+const per = {t:"w", o:0};
+function period(){
+  const n = new Date(); n.setHours(0,0,0,0);
+  let from, to, label;
+  if (per.t === "w"){
+    from = new Date(n); from.setDate(n.getDate() - (n.getDay()+6)%7 + 7*per.o);
+    to = new Date(from); to.setDate(from.getDate()+7);
+    const e = new Date(to); e.setDate(e.getDate()-1);
+    label = `${from.toLocaleDateString("de-DE")} – ${e.toLocaleDateString("de-DE")}`;
+  } else if (per.t === "m"){
+    from = new Date(n.getFullYear(), n.getMonth()+per.o, 1); to = new Date(from.getFullYear(), from.getMonth()+1, 1);
+    label = from.toLocaleDateString("de-DE",{month:"long",year:"numeric"});
+  } else if (per.t === "h"){
+    const m = n.getMonth(), idx = syYear(n)*2 + (m >= 1 && m <= 6 ? 1 : 0) + per.o, y = Math.floor(idx/2);
+    if (idx % 2 === 0){ from = new Date(y,7,1); to = new Date(y+1,1,1); } else { from = new Date(y+1,1,1); to = new Date(y+1,7,1); }
+    label = `${idx%2+1}. Halbjahr ${y}/${String(y+1).slice(2)}`;
+  } else if (per.t === "y"){
+    from = new Date(n.getFullYear()+per.o, 0, 1); to = new Date(from.getFullYear()+1, 0, 1); label = from.getFullYear();
+  } else {
+    const y = syYear(n) + per.o; from = new Date(y, 7, 1); to = new Date(y+1, 7, 1);
+    label = `Schuljahr ${y}/${String(y+1).slice(2)}`;
+  }
+  return {from, to, label};
+}
+function sums(from, to){
+  const r = {}; Object.keys(CATS).forEach(k => r[k] = 0);
+  const add = (cat, s, e) => { if (s >= +from && s < +to) r[cat] = (r[cat]||0) + (e - s)/60000; };
+  data.entries.filter(e => !e.del).forEach(e => add(e.cat, e.start, e.end));
+  if (data.running.cat) add(data.running.cat, data.running.start, Date.now());
+  r.TT = ttMinutes(from, to);
+  return r;
+}
+const total = s => Object.values(s).reduce((a,b) => a+b, 0);
+
+/* ===== Darstellung ===== */
+function render(){
+  // Erfassen
+  document.getElementById("cats").innerHTML = Object.entries(CATS).map(([k,v]) =>
+    `<button class="cat ${data.running.cat===k?"on":""}" onclick="startCat('${k}')">${v}</button>`).join("")
+    + `<button class="stop" onclick="stop()">■ Stopp</button>`;
+  const t0 = new Date(); t0.setHours(0,0,0,0); const t1 = new Date(t0); t1.setDate(t0.getDate()+1);
+  const st = sums(t0, t1), soll = sollMinutes(t0, t1);
+  document.getElementById("today").textContent = `Heute: ${hm(total(st))} (Stundenplan ${hm(st.TT)})` + (soll ? ` · Soll ${hm(soll)}` : "");
+  tick();
+
+  // Einträge
+  const list = data.entries.filter(e => !e.del).sort((a,b) => b.start - a.start).slice(0, 200);
+  let html = "", last = "";
+  const f = x => new Date(x).toLocaleTimeString("de-DE",{hour:"2-digit",minute:"2-digit"});
+  list.forEach(e => {
+    const d = new Date(e.start).toLocaleDateString("de-DE",{weekday:"short",day:"2-digit",month:"2-digit",year:"numeric"});
+    if (d !== last){ html += `<div class="day">${d}</div>`; last = d; }
+    html += `<div class="row"><span><b>${CATS[e.cat]||e.cat}</b><br><small>${f(e.start)}–${f(e.end)} · ${hm((e.end-e.start)/60000)}${e.note?" · "+esc(e.note):""}</small></span>
+      <button class="btn sec" onclick="editEntry('${e.id}')">✎</button></div>`;
+  });
+  document.getElementById("list").innerHTML = html || "<p class='mut'>Noch keine Einträge. Der Stundenplan-Unterricht erscheint nur in der Auswertung.</p>";
+
+  // Auswertung
+  document.querySelectorAll("[data-p]").forEach(b => b.className = "btn " + (b.dataset.p === per.t ? "" : "sec"));
+  const p = period(), s = sums(p.from, p.to), ist = total(s);
+  const today = endOfToday(), sollBis = sollMinutes(p.from, new Date(Math.min(+p.to, +today))), sollAll = sollMinutes(p.from, p.to);
+  const saldo = ist - sollBis, running = +p.to > Date.now() && +p.from < Date.now();
+  document.getElementById("plabel").textContent = p.label;
+  document.getElementById("saldo").innerHTML =
+    `<div class="row"><span>Ist</span><b>${hm(ist)}</b></div>
+     <div class="row"><span>Soll${running ? " bis heute" : ""}</span><b>${hm(sollBis)}</b></div>
+     <div class="row"><b>Saldo</b><b class="${saldo >= 0 ? "plus" : "minus"}">${saldo >= 0 ? "+" : ""}${hm(saldo)}</b></div>`
+    + (running ? `<div class="row"><span class="hint">Soll im gesamten Zeitraum</span><span class="hint">${hm(sollAll)}</span></div>` : "")
+    + (+p.from > Date.now() ? `<div class="hint">Zeitraum liegt in der Zukunft.</div>` : "");
+  const rows = [["TT","Unterricht (Stundenplan)"], ...Object.entries(CATS).map(([k,v]) => [k, k==="U" ? "Unterricht (zusätzlich)" : v])];
+  const mx = Math.max(1, ...rows.map(([k]) => s[k]));
+  document.getElementById("stats").innerHTML = rows.map(([k,v]) =>
+    `<div class="row" style="display:block"><div style="display:flex;justify-content:space-between"><span>${v}</span><b>${hm(s[k])}</b></div>
+     <div class="bar" style="width:${s[k]/mx*100}%"></div></div>`).join("");
+
+  // Einstellungen
+  const S = data.settings;
+  document.getElementById("ab").checked = S.ab;
+  document.getElementById("abref").value = S.abRef;
+  renderTT(true);
+  document.getElementById("weekly").value = S.weekly;
+  document.getElementById("umfang").value = S.umfang;
+  document.getElementById("urlaub").value = S.urlaub;
+  document.getElementById("sdate").value = S.startDate;
+  document.getElementById("free").value = S.free;
+  renderHol();
+  const acc = msalApp && msalApp.getAllAccounts()[0];
+  document.getElementById("acct").textContent = acc ? "Verbunden als " + acc.username
+    : (msalApp ? "Nicht verbunden – Daten liegen nur auf diesem Gerät." : "Noch keine Client-ID eingetragen (siehe Anleitung).");
+  document.getElementById("login").hidden = !!acc || !msalApp;
+  document.getElementById("logout").hidden = !acc;
+}
+function renderTT(fromData){
+  const ab = document.getElementById("ab").checked, box = document.getElementById("tt");
+  const cur = fromData ? data.settings.tt : readTT();
+  document.getElementById("abbox").hidden = !ab;
+  box.className = "tt" + (ab ? " ab" : "");
+  box.innerHTML = (ab ? `<span></span><b>A-Woche</b><b>B-Woche</b>` : "") + DAYS.map((d,i) =>
+    `<b>${d}</b><input id="ttA${i}" value="${esc(cur.A[i]||"")}" placeholder="07:30-08:15, 08:25-09:10" oninput="ttSum(${i})">`
+    + (ab ? `<input id="ttB${i}" value="${esc(cur.B[i]||"")}">` : `<span class="hint" id="tts${i}"></span>`)).join("");
+  if (!ab) DAYS.forEach((_,i) => ttSum(i));
+}
+function ttSum(i){ const el = document.getElementById("tts"+i); if (el) el.textContent = hm(rangeMin(document.getElementById("ttA"+i).value)); }
+function readTT(){
+  const old = data.settings.tt, g = (w,i) => { const el = document.getElementById(`tt${w}${i}`); return el ? el.value.trim() : old[w][i]; };
+  return {A:DAYS.map((_,i) => g("A",i)), B:DAYS.map((_,i) => g("B",i))};
+}
+function tick(){
+  const r = data.running;
+  document.getElementById("curCat").textContent = r.cat ? "Läuft: " + CATS[r.cat] : "Keine Erfassung aktiv";
+  if (r.cat){ const s = Math.floor((Date.now() - r.start)/1000);
+    document.getElementById("curTime").textContent = `${pad(Math.floor(s/3600))}:${pad(Math.floor(s/60)%60)}:${pad(s%60)}`; }
+  else document.getElementById("curTime").textContent = "--:--:--";
+}
+setInterval(tick, 1000);
+
+document.getElementById("nav").onclick = e => {
+  const t = e.target.dataset.t; if (!t) return;
+  document.querySelectorAll("nav button").forEach(b => b.classList.toggle("on", b.dataset.t === t));
+  document.querySelectorAll("main section").forEach(s => s.hidden = s.id !== t);
+  render();
+};
+document.querySelectorAll("[data-p]").forEach(b => b.onclick = () => { per.t = b.dataset.p; per.o = 0; render(); });
+const catOptions = Object.entries(CATS).map(([k,v]) => `<option value="${k}">${v}</option>`).join("");
+document.getElementById("fcat").innerHTML = catOptions;
+document.getElementById("qcat").innerHTML = catOptions;
+document.getElementById("qcat").value = "E";
+
+/* ===== Nachtragen / Korrigieren ===== */
+const toInput = ms => { const d = new Date(ms); return `${iso(d)}T${pad(d.getHours())}:${pad(d.getMinutes())}`; };
+function editEntry(id){
+  const dlg = document.getElementById("dlg"), e = data.entries.find(x => x.id === id), now = Date.now();
+  document.getElementById("dtitle").textContent = e ? "Eintrag korrigieren" : "Eintrag nachtragen";
+  document.getElementById("fcat").value = e ? e.cat : "V";
+  document.getElementById("fstart").value = toInput(e ? e.start : now - 3600000);
+  document.getElementById("fend").value = toInput(e ? e.end : now);
+  document.getElementById("fnote").value = e ? e.note : "";
+  document.getElementById("fdel").hidden = !e;
+  document.getElementById("fdel").onclick = () => { if (confirm("Eintrag löschen?")){ e.del = true; e.upd = Date.now(); dlg.close(); save(); } };
+  dlg.onclose = () => {
+    if (dlg.returnValue !== "ok") return;
+    const s = new Date(document.getElementById("fstart").value).getTime(), en = new Date(document.getElementById("fend").value).getTime();
+    if (!(en > s)) { alert("Das Ende muss nach dem Beginn liegen."); return; }
+    const v = {cat:document.getElementById("fcat").value, start:s, end:en, note:document.getElementById("fnote").value, upd:Date.now()};
+    if (e) Object.assign(e, v); else data.entries.push({id:uid(), ...v});
+    save();
+  };
+  dlg.returnValue = ""; dlg.showModal();
+}
+function saveSettings(){
+  const v = id => document.getElementById(id).value, S = data.settings;
+  data.settings = {tt:readTT(), ab:document.getElementById("ab").checked, abRef:v("abref"),
+    weekly:+v("weekly") || 0, umfang:+v("umfang") || 0, urlaub:+v("urlaub") || 0,
+    startDate:v("sdate") || S.startDate, free:v("free"), upd:Date.now()};
+  if (data.settings.ab && !data.settings.abRef) alert("Bitte ein Datum aus einer A-Woche angeben, sonst gilt jede Woche als A-Woche.");
+  save(); toast("Einstellungen gespeichert");
+}
+function csv(){
+  const p = period(), s = sums(p.from, p.to);
+  const lines = ["Datum;Beginn;Ende;Tätigkeit;Minuten;Notiz"];
+  data.entries.filter(e => !e.del && e.start >= +p.from && e.start < +p.to).sort((a,b) => a.start - b.start).forEach(e => {
+    const a = new Date(e.start), b = new Date(e.end), t = x => x.toLocaleTimeString("de-DE").slice(0,5);
+    lines.push([a.toLocaleDateString("de-DE"), t(a), t(b), CATS[e.cat]||e.cat, Math.round((e.end-e.start)/60000), '"'+(e.note||"").replace(/"/g,'""')+'"'].join(";"));
+  });
+  const sollBis = sollMinutes(p.from, new Date(Math.min(+p.to, +endOfToday()))), ist = total(s);
+  lines.push("", `;;;Unterricht (Stundenplan);${Math.round(s.TT)};`, `;;;Ist gesamt;${Math.round(ist)};`,
+    `;;;Soll;${Math.round(sollBis)};`, `;;;Saldo;${Math.round(ist - sollBis)};`);
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(new Blob(["﻿" + lines.join("\r\n")], {type:"text/csv"}));
+  a.download = `Arbeitszeit ${p.label}.csv`.replace(/[\/:–]/g,"-").replace(/\s+/g,"_");
+  document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 5000);
+}
+
+/* ===== OneDrive-Synchronisation ===== */
+const SCOPES = ["Files.ReadWrite.AppFolder"];
+const FILE = "https://graph.microsoft.com/v1.0/me/drive/special/approot:/arbeitszeit.json:/content";
+let msalApp = null;
+if (!CLIENT_ID.startsWith("HIER") && window.msal){
+  msalApp = new msal.PublicClientApplication({auth:{clientId:CLIENT_ID, authority:"https://login.microsoftonline.com/common",
+    redirectUri: location.origin + location.pathname}, cache:{cacheLocation:"localStorage"}});
+}
+const setStatus = t => document.getElementById("status").textContent = t;
+function login(){ msalApp.loginRedirect({scopes:SCOPES}); }
+function logout(){ msalApp.logoutRedirect({account:msalApp.getAllAccounts()[0], postLogoutRedirectUri:location.origin+location.pathname}); }
+async function token(){
+  const acc = msalApp && msalApp.getAllAccounts()[0]; if (!acc) return null;
+  try { return (await msalApp.acquireTokenSilent({scopes:SCOPES, account:acc})).accessToken; }
+  catch(e){ if (e instanceof msal.InteractionRequiredAuthError) msalApp.acquireTokenRedirect({scopes:SCOPES}); return null; }
+}
+function merge(a, b){
+  b = normalize(b);
+  const m = new Map();
+  [...a.entries, ...b.entries].forEach(e => { const x = m.get(e.id); if (!x || e.upd > x.upd) m.set(e.id, e); });
+  return normalize({entries:[...m.values()],
+    running:(a.running.upd >= b.running.upd ? a : b).running,
+    settings:(a.settings.upd >= b.settings.upd ? a : b).settings,
+    hol:(a.hol.fetched >= b.hol.fetched ? a : b).hol});
+}
+let syncing = false, again = false, timer = null;
+function queueSync(){ clearTimeout(timer); timer = setTimeout(sync, 1500); }
+async function sync(){
+  if (syncing){ again = true; return; }
+  const t = await token(); if (!t) return;
+  syncing = true; setStatus("synchronisiere …");
+  try {
+    const r = await fetch(FILE, {headers:{Authorization:"Bearer "+t}, cache:"no-store"});
+    if (r.ok) data = merge(data, await r.json()); else if (r.status !== 404) throw new Error(r.status);
+    persist();
+    const w = await fetch(FILE, {method:"PUT", headers:{Authorization:"Bearer "+t, "Content-Type":"application/json"}, body:JSON.stringify(data)});
+    if (!w.ok) throw new Error(w.status);
+    setStatus("✓ OneDrive " + new Date().toLocaleTimeString("de-DE").slice(0,5));
+    if (!document.querySelector("#set:not([hidden])")) render();   // Eingaben in den Einstellungen nicht überschreiben
+  } catch(e){ setStatus("offline – lokal gespeichert"); }
+  syncing = false; if (again){ again = false; sync(); }
+}
+document.addEventListener("visibilitychange", () => { if (!document.hidden) sync(); });
+setInterval(sync, 60000);
+
+(async () => {
+  if (msalApp){ try { await msalApp.handleRedirectPromise(); } catch(e){ setStatus("Anmeldefehler"); } }
+  render(); sync();
+  if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js");
+})();
+</script>
+</body>
+</html>

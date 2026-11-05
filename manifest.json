@@ -1,0 +1,9 @@
+{
+  "name": "Arbeitszeit Lehrkraft",
+  "short_name": "Arbeitszeit",
+  "start_url": "./",
+  "display": "standalone",
+  "background_color": "#f4f6fa",
+  "theme_color": "#2b5797",
+  "icons": [{ "src": "icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }]
+}
