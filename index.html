@@ -6,6 +6,7 @@
 <title>Arbeitszeit</title>
 <link rel="manifest" href="manifest.json">
 <link rel="icon" href="icon.svg">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
 <meta name="theme-color" content="#2b5797">
 <script src="https://accounts.google.com/gsi/client" async onload="gisReady()"></script>
 <style>
@@ -13,7 +14,7 @@
 @media (prefers-color-scheme:dark){:root{--bg:#14171f;--card:#1f2430;--tx:#e8ebf2;--mut:#9aa3b5;--pri:#5b8bd6;--red:#e2614f;--grn:#4cc27a;--bd:#333a4a}}
 *{box-sizing:border-box}body{margin:0;font-family:system-ui,Segoe UI,Roboto,sans-serif;background:var(--bg);color:var(--tx)}
 header{background:var(--pri);color:#fff;padding:12px 16px;display:flex;justify-content:space-between;align-items:center}
-header h1{font-size:18px;margin:0}#status{font-size:12px;opacity:.9}
+header h1{font-size:18px;margin:0;display:flex;align-items:center}.logo{width:28px;height:28px;margin-right:8px;border-radius:7px}#status{font-size:12px;opacity:.9}
 nav{display:flex;background:var(--card);border-bottom:1px solid var(--bd)}nav button{flex:1;padding:12px 2px;border:0;background:none;color:var(--mut);font-size:14px}
 nav button.on{color:var(--pri);border-bottom:3px solid var(--pri);font-weight:600}
 main{max-width:640px;margin:0 auto;padding:16px}.card{background:var(--card);border:1px solid var(--bd);border-radius:12px;padding:16px;margin-bottom:16px}
@@ -66,7 +67,7 @@ dialog{border:0;border-radius:12px;width:min(92vw,420px);background:var(--card);
 </style>
 </head>
 <body>
-<header><h1>⏱ Arbeitszeit<button class="helpbtn" onclick="showTab('hilfe')" title="Hilfe" aria-label="Hilfe">?</button></h1><span id="status">lokal</span></header>
+<header><h1><img src="icon.svg" alt="" class="logo">Arbeitszeit<button class="helpbtn" onclick="showTab('hilfe')" title="Hilfe" aria-label="Hilfe">?</button></h1><span id="status">lokal</span></header>
 <nav id="nav">
  <button data-t="erf" class="on">Erfassen</button><button data-t="ein">Einträge</button><button data-t="aus">Auswertung</button><button data-t="lnk">Links</button><button data-t="set">Einstellungen</button>
 </nav>
@@ -384,7 +385,7 @@ dialog{border:0;border-radius:12px;width:min(92vw,420px);background:var(--card);
 /* ===== Konfiguration: hier die Anwendungs-ID aus dem Azure-Portal eintragen ===== */
 const DROPBOX_KEY = "xjhyr1ko1kx5y7h";   // Dropbox-App-Key (App-Konsole → Settings → App key)
 const CLIENT_ID = "676671418561-u8sq0lmimfsnqa1oqno6vl92d0d1imcj.apps.googleusercontent.com";   // Google OAuth-Client-ID (…apps.googleusercontent.com)
-const VERSION = "1.4";
+const VERSION = "1.5";
 
 const CATS = {U:"Unterricht", V:"Vorbereitung", K:"Korrekturen", KF:"Konferenz", E:"Elternarbeit", O:"Organisation/Sonstiges", S:"Präsenz in der Schule"};
 const LABEL = {...CATS, P:"Pause (zählt nicht)", TT:"Unterricht (Stundenplan)"};
