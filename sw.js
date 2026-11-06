@@ -1,4 +1,4 @@
-const C = "arbeitszeit-v16";
+const C = "arbeitszeit-v17";
 self.addEventListener("install", e => {
   e.waitUntil(caches.open(C).then(c => c.addAll(["./", "./index.html", "./manifest.json", "./icon.svg"])));
   self.skipWaiting();
