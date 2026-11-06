@@ -28,12 +28,19 @@ main{max-width:640px;margin:0 auto;padding:16px}.card{background:var(--card);bor
 .day{font-weight:700;margin-top:12px;color:var(--mut);font-size:13px}
 label{display:block;font-size:14px;margin:10px 0 4px}input,select,textarea{width:100%;padding:9px;border:1px solid var(--bd);border-radius:8px;background:var(--bg);color:var(--tx);font-size:15px}
 input[type=checkbox]{width:auto;margin-right:8px}
-.quick{display:grid;grid-template-columns:1fr auto auto auto;gap:8px;align-items:center}
+.quick{display:grid;grid-template-columns:minmax(0,1fr) auto auto auto auto;gap:6px;align-items:center}.quick .btn{padding:10px 9px}
 .per{display:grid;grid-template-columns:28px 1fr 14px 1fr;gap:6px;align-items:center;margin-top:8px}.per input{padding:7px}
 .chips{display:grid;grid-template-columns:26px repeat(8,1fr) 50px;gap:4px;align-items:center;margin-top:6px}
 .chip{padding:9px 0;border:1px solid var(--bd);border-radius:6px;background:var(--bg);color:var(--tx);font-weight:600;font-size:14px}
 .chip.on{background:var(--pri);color:#fff;border-color:var(--pri)}.chips .sum{font-size:12px;color:var(--mut);text-align:right}
 .wk{margin-top:14px;font-weight:600}
+.opt2{display:flex;gap:10px;align-items:flex-start;padding:10px 0;border-bottom:1px solid var(--bd)}.opt2:last-of-type{border:0}.opt2 input{width:auto;margin-top:4px}
+.opt2.dis{opacity:.5}.sub{margin:8px 0 0 0;display:flex;flex-direction:column;gap:6px}.sub .btn{width:100%}
+.info{background:none;border:1px solid var(--pri);color:var(--pri);border-radius:50%;width:24px;height:24px;font-size:13px;padding:0;margin-left:6px;vertical-align:1px;font-weight:700}
+#hilfe h2{font-size:17px;margin:22px 0 8px}#hilfe table{border-collapse:collapse;width:100%;font-size:14px}#hilfe td,#hilfe th{border:1px solid var(--bd);padding:6px;vertical-align:top;text-align:left}
+#hilfe blockquote{margin:8px 0;padding:8px 12px;background:var(--bg);border-left:3px solid var(--pri)}#hilfe li{margin:3px 0}#hilfe ul,#hilfe ol{padding-left:22px}
+.helpbtn{background:none;border:1px solid #fff9;color:#fff;border-radius:50%;width:26px;height:26px;font-size:14px;margin-left:10px;padding:0;vertical-align:2px}
+.bakhint{border-color:#d4ac0d}
 .school{grid-column:1/-1;background:#17a589;color:#fff;border-color:#17a589}.school.on{background:#0e6655;border-color:#0e6655}
 .pausebtn{grid-column:1/-1;background:#f4d03f;color:#1d2330;border:0;padding:16px;font-size:17px;border-radius:12px;font-weight:700}
 .pausebtn.on{background:#b7950b;color:#fff}
@@ -56,40 +63,31 @@ dialog{border:0;border-radius:12px;width:min(92vw,420px);background:var(--card);
 .plus{color:var(--grn)}.minus{color:var(--red)}
 #toast{position:fixed;left:50%;bottom:20px;transform:translateX(-50%);background:#222;color:#fff;padding:10px 16px;border-radius:20px;font-size:14px;opacity:0;transition:opacity .3s;pointer-events:none}
 #toast.show{opacity:.95}
-.hdr{display:flex;align-items:center;gap:10px}
-.helpbtn{width:30px;height:30px;border-radius:50%;border:2px solid #fff;background:none;color:#fff;font-weight:700;font-size:16px;padding:0;cursor:pointer}
-.helpbtn.on{background:#fff;color:var(--pri)}
-.ib{display:inline-block;margin-left:6px;color:var(--pri);text-decoration:none;font-weight:600;font-size:15px}
-.helplink{display:block;text-align:center;margin-top:12px;color:var(--pri);font-size:14px}
-#hilfe h2{font-size:17px;margin:0 0 8px;color:var(--pri)}#hilfe h3{font-size:15px;margin:14px 0 4px}
-#hilfe p,#hilfe li{font-size:15px;line-height:1.45}#hilfe ul,#hilfe ol{padding-left:22px;margin:6px 0}
-#hilfe .tip{background:var(--bg);border-left:4px solid var(--pri);padding:8px 10px;border-radius:6px;font-size:14px}
-#hilfe .toc a{display:inline-block;margin:3px 8px 3px 0;color:var(--pri)}
-#hilfe dt{font-weight:700;margin-top:8px}#hilfe dd{margin:2px 0 0 0}
 </style>
 </head>
 <body>
-<header><h1>⏱ Arbeitszeit</h1><span class="hdr"><span id="status">lokal</span><button class="helpbtn" id="helpbtn" onclick="toggleHelp()" title="Anleitung" aria-label="Anleitung">?</button></span></header>
+<header><h1>⏱ Arbeitszeit<button class="helpbtn" onclick="showTab('hilfe')" title="Hilfe" aria-label="Hilfe">?</button></h1><span id="status">lokal</span></header>
 <nav id="nav">
  <button data-t="erf" class="on">Erfassen</button><button data-t="ein">Einträge</button><button data-t="aus">Auswertung</button><button data-t="lnk">Links</button><button data-t="set">Einstellungen</button>
 </nav>
 <main>
  <section id="erf">
+  <div class="card bakhint" id="bakhint" hidden><span id="bakhinttext"></span>
+   <div style="display:flex;gap:8px;margin-top:10px"><button class="btn" onclick="downloadBackup()">Sichern</button><button class="btn sec" onclick="snoozeBackup()">Später</button></div></div>
   <div class="card"><div class="mut" id="curCat">Keine Erfassung aktiv</div><div class="big" id="curTime">--:--:--</div><div class="mut" id="today"></div></div>
   <div class="grid" id="cats"></div>
   <div class="card" style="margin-top:16px">
-   <b>Schnellerfassung</b><a href="#" class="ib" onclick="showHelp('h-erf');return false" title="Hilfe">ⓘ</a><div class="hint">Bucht die Minuten rückwirkend bis jetzt, z. B. für ein kurzes Telefonat.</div>
+   <b>Schnellerfassung</b><div class="hint">Bucht die Minuten rückwirkend bis jetzt, z. B. für ein kurzes Telefonat.</div>
    <div class="quick"><select id="qcat"></select>
-    <button class="btn" onclick="quick(10)">+10</button><button class="btn" onclick="quick(15)">+15</button><button class="btn" onclick="quick(30)">+30</button></div>
+    <button class="btn" onclick="quick(5)">+5</button><button class="btn" onclick="quick(10)">+10</button><button class="btn" onclick="quick(15)">+15</button><button class="btn" onclick="quick(30)">+30</button></div>
    <button class="btn" style="width:100%;margin-top:12px;padding:14px" onclick="addVertretung()">+ Vertretungsstunde</button>
    <div id="vtinfo" class="hint" style="margin-top:8px" hidden></div>
   </div>
-  <a href="#" class="helplink" onclick="showHelp('h-erf');return false">ⓘ Welcher Knopf wofür?</a>
  </section>
  <section id="ein" hidden>
   <button class="btn" onclick="editEntry()">+ Eintrag nachtragen</button>
   <div class="card" style="margin-top:12px">
-   <div class="hint" style="margin-top:0">Tippe eine Stunde an, wenn sie ausgefallen ist (sie wird dann nicht gutgeschrieben). Bei Krankheit „krank“ wählen: Dann entfallen Unterricht und Soll für diese Zeit. <a href="#" class="ib" style="font-size:13px;margin:0" onclick="showHelp('h-ein');return false">ⓘ Mehr</a></div>
+   <div class="hint" style="margin-top:0">Tippe eine Stunde an, wenn sie ausgefallen ist (sie wird dann nicht gutgeschrieben). Bei Krankheit „krank“ wählen: Dann entfallen Unterricht und Soll für diese Zeit.</div>
    <label>Bestimmten Tag anzeigen (auch künftige, z. B. für eine geplante Klassenfahrt)</label><input type="date" id="jump" onchange="render()">
   </div>
   <div class="card" id="list"></div>
@@ -102,20 +100,195 @@ dialog{border:0;border-radius:12px;width:min(92vw,420px);background:var(--card);
   <div class="card" id="tline"></div>
   <div class="card" id="stats"></div>
   <button class="btn sec" onclick="csv()">Als CSV (Excel) exportieren</button>
-  <a href="#" class="helplink" onclick="showHelp('h-aus');return false">ⓘ Was bedeuten Ist, Soll und Saldo?</a>
  </section>
  <section id="lnk" hidden>
+  <div class="card"><b>Personalrat informieren</b>
+   <div class="hint">Öffnet eine neue E-Mail an deinen Schulpersonalrat, z. B. um eine Überlastung anzuzeigen.</div>
+   <a id="prmail" class="btn" style="display:block;text-align:center;text-decoration:none;margin-top:10px" href="#">✉ E-Mail an den Personalrat</a>
+   <p class="hint" id="praddr"></p>
+   <details id="predit"><summary class="hint" style="cursor:pointer">Adresse ändern (z. B. nach einem Schulwechsel)</summary>
+    <div style="display:flex;gap:8px;margin-top:8px"><input id="prinput" type="email" inputmode="email" autocomplete="off"><button type="button" class="btn" onclick="savePrMail()">Speichern</button></div>
+    <button type="button" class="btn sec" style="margin-top:8px" onclick="resetPrMail()">Standardadresse wiederherstellen</button>
+   </details>
+  </div>
   <div class="card"><b>Links</b><div class="hint">Öffnen in einem neuen Fenster.</div><div id="linklist" style="margin-top:8px"></div></div>
   <div class="card"><b>Link hinzufügen</b>
    <label>Name</label><input id="lname" placeholder="z. B. Stundenplan">
    <label>Adresse</label><input id="lurl" type="url" inputmode="url" placeholder="https://…">
    <button type="button" class="btn" style="width:100%;margin-top:10px" onclick="addLink()">Speichern</button></div>
  </section>
+ <section id="hilfe" hidden><div class="card"><b style="font-size:18px">Hilfe</b>
+<p>Mit dieser App erfasst du deine Arbeitszeit als Lehrkraft schnell per Knopfdruck. Sie vergleicht die Zeit mit deinem Soll und zeigt dir, ob du im Plus oder im Minus bist.</p>
+<p><strong>Adresse:</strong> https://herrriedling.github.io/arbeitszeit-/</p>
+
+<h2>1. Einmalig einrichten</h2>
+<ol>
+<li><strong>App installieren:</strong> Öffne die Adresse im Browser.</li>
+<li><em>Android (Chrome):</em> Menü ⋮ → „Zum Startbildschirm hinzufügen“ bzw. „App installieren“</li>
+<li><em>Windows (Edge/Chrome):</em> Symbol „App installieren“ in der Adresszeile</li>
+<li><strong>Datenspeicherung wählen</strong> (Reiter <em>Einstellungen</em>): nur auf diesem Gerät, als Datei auf dem PC, in Google Drive oder in Dropbox (siehe Abschnitt 6).</li>
+<li><strong>Stundenzeiten:</strong> Trage ein, wann die 1. bis 8. Stunde beginnt und endet.</li>
+<li><strong>Stundenplan:</strong> Tippe an, welche Stunden du an welchem Tag unterrichtest. Bei wechselnden Wochen „A/B-Wochen“ anhaken und ein Datum aus einer A-Woche angeben.</li>
+<li><strong>Eigene Aufgaben</strong> (optional): Für regelmäßige Sonderaufgaben wie Personalrat oder Vertretungsplan einen eigenen Button anlegen (siehe Abschnitt 5).</li>
+<li><strong>Soll-Arbeitszeit:</strong> Wochenarbeitszeit bei Vollzeit, Beschäftigungsumfang in % und Urlaubstage eintragen.</li>
+<li><strong>Ferien laden:</strong> Einmal pro Schuljahr auf „Ferien laden“ tippen. Feiertage in Sachsen-Anhalt kennt die App schon.</li>
+<li><strong>Freie Tage:</strong> Bewegliche Ferientage oder pädagogische Tage über die Kalenderfelder „von“ und „bis“ eintragen (für einen einzelnen Tag „bis“ leer lassen).</li>
+<li><strong>Erfassung ab Datum:</strong> Ab diesem Tag rechnet die App Soll und Ist. Alles davor zählt als ausgeglichen.</li>
+<li>Zum Schluss <strong>„Einstellungen speichern“</strong> tippen.</li>
+</ol>
+<blockquote>
+<p>💡 Deinen Unterricht laut Stundenplan musst du <strong>nicht</strong> erfassen. Er wird an jedem Schultag automatisch gutgeschrieben.</p>
+</blockquote>
+
+<h2>2. Täglich erfassen (Reiter <em>Erfassen</em>)</h2>
+<table>
+<thead>
+<tr>
+<th>Knopf</th>
+<th>Was passiert</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>🏫 <strong>In der Schule</strong></td>
+<td>Wenn du ankommst. Zählt deine Anwesenheit (Aufsicht, Gespräche, Kopieren, Freistunden …).</td>
+</tr>
+<tr>
+<td><strong>Vorbereitung, Korrekturen, Konferenz, Elternarbeit, Organisation/Sonstiges, Unterricht</strong></td>
+<td>Startet die Uhr für diese Tätigkeit. Ein Tipp auf einen anderen Knopf wechselt direkt.</td>
+</tr>
+<tr>
+<td><strong>Eigene Aufgaben</strong> (farbig umrandet)</td>
+<td>Wie die anderen Tätigkeiten, z. B. „Personalrat“.</td>
+</tr>
+<tr>
+<td>☕ <strong>Pause</strong></td>
+<td>Nur in der Schule. Pausen <strong>ab 15 Minuten</strong> zählen nicht als Arbeitszeit, kürzere schon.</td>
+</tr>
+<tr>
+<td>■ <strong>Stopp</strong></td>
+<td>Beendet die Tätigkeit. In der Schule geht es zurück zu „In der Schule“, ein zweiter Stopp beendet den Schultag.</td>
+</tr>
+</tbody>
+</table>
+<ul>
+<li><strong>Unterricht</strong> brauchst du nur für <em>zusätzlichen</em> Unterricht, der nicht im Stundenplan steht.</li>
+<li><strong>Schnellerfassung:</strong> Tätigkeit wählen und +5 / +10 / +15 / +30 tippen, z. B. nach einem Telefonat mit Eltern. Die Minuten werden rückwirkend bis jetzt gebucht.</li>
+<li><strong>+ Vertretungsstunde:</strong> Bucht die gerade laufende oder zuletzt beendete Stunde als Unterricht. Mit „Ändern“ oder „Rückgängig“ korrigierst du sie.</li>
+<li><strong>Vergessen zu stoppen?</strong> Am nächsten Tag fragt die App, wann du aufgehört hast.</li>
+<li>Wenn du dich vertippst und sofort wechselst (unter 30 Sekunden), wird nichts gespeichert.</li>
+</ul>
+
+<h2>3. Einträge ansehen und korrigieren (Reiter <em>Einträge</em>)</h2>
+<ul>
+<li>Jeder Tag zeigt seine <strong>Zeitleiste</strong>, die Stunden laut Stundenplan und deine erfassten Tätigkeiten.</li>
+<li><strong>✎</strong> neben einem Eintrag: Zeit, Tätigkeit oder Notiz ändern oder den Eintrag löschen.</li>
+<li><strong>+ Eintrag nachtragen:</strong> Für Arbeit, die du vergessen hast zu erfassen (z. B. Korrekturen am Wochenende).</li>
+<li><strong>Stunde ausgefallen?</strong> Tippe die Stundennummer an. Sie wird durchgestrichen und nicht gutgeschrieben. Ein zweiter Tipp macht das rückgängig.</li>
+<li><strong>Krank?</strong> Wähle „krank (ganzer Tag)“ oder „krank ab … Stunde“. Für mehrere Tage gibst du ein Enddatum an. An diesen Tagen entfallen Unterricht und Soll.</li>
+<li><strong>Bestimmten Tag anzeigen:</strong> Damit springst du zu einem Tag, auch in der Zukunft (z. B. Klassenfahrt).</li>
+</ul>
+
+<h2>4. Auswertung (Reiter <em>Auswertung</em>)</h2>
+<ul>
+<li>Zeitraum wählen: <strong>Tag, Woche, Monat, Halbjahr, Jahr, Schuljahr</strong>. Mit ◀ ▶ blätterst du.</li>
+<li><strong>Ist</strong> = deine erfasste Zeit · <strong>Soll</strong> = was du bis heute arbeiten solltest · <strong>Saldo</strong> = Plus (grün) oder Minus (rot)</li>
+<li>Die <strong>Zeitleiste</strong> zeigt bei Tag und Woche, wann du was gemacht hast. Beim Tag steht darunter alles in zeitlicher Reihenfolge.</li>
+<li><strong>Als CSV exportieren:</strong> Öffnet sich in Excel, z. B. zum Ausdrucken oder Abgeben.</li>
+</ul>
+<p><strong>So wird das Soll berechnet:</strong> Arbeitstage im Schuljahr minus Feiertage und Urlaubstage ergeben das Jahres-Soll. Es wird auf die Schultage verteilt, weil Lehrkräfte die Ferienzeit in den Schulwochen „vorarbeiten“. Deshalb ist dein Soll an Schultagen höher als bei einem normalen Arbeitstag, und in den Ferien ist es null.</p>
+
+<h2>5. Weitere Funktionen</h2>
+<ul>
+<li><strong>Eigene Aufgaben</strong> (Reiter <em>Einstellungen</em>): Namen eingeben, „+ Hinzufügen“ tippen. Unter <em>Erfassen</em> erscheint ein eigener Button, und die Zeit steht unter diesem Namen in Einträgen, Auswertung und CSV.</li>
+<li><strong>Aufgabe endet</strong> (z. B. zum Halbjahr vom Vertretungsplan zum IT-Ansprechpartner): Alte Aufgabe <strong>archivieren</strong> und neue anlegen. Die bisherige Zeit bleibt unter dem alten Namen sichtbar.</li>
+<li><strong>✎</strong> nur für Tippfehler: Der neue Name gilt auch für alle bisherigen Einträge.</li>
+<li>Löschen geht nur, solange noch keine Zeit darauf erfasst ist.</li>
+<li><strong>Links:</strong> Eigene Lesezeichen, z. B. Schulmanager oder Bildungsserver.</li>
+<li><strong>Personalrat informieren</strong> (Reiter <em>Links</em>): öffnet eine E-Mail an deinen Schulpersonalrat. Die Adresse kannst du dort ändern, z. B. nach einem Schulwechsel.</li>
+<li><strong>Neuer Stundenplan</strong> (z. B. zum Halbjahr): Plan ändern und speichern. Die App fragt, ab wann er gilt: ab heute, ab einem Datum, als Korrektur oder ab Schuljahresbeginn. Ältere Zeiten bleiben dann richtig.</li>
+</ul>
+
+<h2 id="hilfe-daten">6. Wo sind meine Daten?</h2>
+<p>Deine Daten liegen <strong>immer auch auf dem Gerät</strong>, deshalb funktioniert die App ohne Internet. In <em>Einstellungen → Datenspeicherung</em> wählst du pro Gerät, wo sie zusätzlich gespeichert werden:</p>
+<table>
+<thead>
+<tr>
+<th>Speicherart</th>
+<th>Wofür</th>
+<th>Hinweise</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Nur auf diesem Gerät</strong></td>
+<td>Ausprobieren, ein einziges Gerät</td>
+<td>Keine Anmeldung nötig. Mach regelmäßig eine Sicherung, sonst sind die Daten weg, wenn das Gerät verloren geht.</td>
+</tr>
+<tr>
+<td><strong>Datei auf diesem PC</strong></td>
+<td>Windows mit Chrome oder Edge</td>
+<td>Du wählst eine Datei, z. B. <code>arbeitszeit.json</code>. Liegt sie in deinem OneDrive- oder Dropbox-Ordner, synchronisiert das PC-Programm sie automatisch mit.</td>
+</tr>
+<tr>
+<td><strong>Google Drive</strong></td>
+<td>Mehrere Geräte</td>
+<td>Datei: <em>Google Drive → Arbeitszeit → arbeitszeit.json</em>. Die App sieht nur diese eine Datei.</td>
+</tr>
+<tr>
+<td><strong>Dropbox</strong></td>
+<td>Mehrere Geräte</td>
+<td>Datei: <em>Dropbox → Apps → (App-Name) → arbeitszeit.json</em>. Die App sieht nur diesen Ordner.</td>
+</tr>
+</tbody>
+</table>
+<p>Es ist immer nur <strong>ein</strong> Ziel aktiv. Wechselst du, bleiben die Daten auf dem Gerät erhalten und werden beim ersten Abgleich mit dem neuen Ziel <strong>zusammengeführt</strong>, nicht überschrieben.</p>
+<p><strong>Sicherungen</strong></p>
+<ul>
+<li><strong>Sicherung speichern:</strong> lädt alle Daten als Datei <code>arbeitszeit-sicherung-JJJJ-MM-TT.json</code> herunter (auf dem Handy in den Download-Ordner).</li>
+<li><strong>Sicherung laden:</strong> Datei wählen, dann <strong>„Zusammenführen“</strong> (empfohlen, nichts geht verloren) oder <strong>„Ersetzen“</strong> (alle Daten auf diesem Gerät werden durch die Sicherung ersetzt).</li>
+<li><strong>Automatisch (Datei auf dem PC):</strong> Wählst du einen <strong>Sicherungsordner</strong>, legt die App jeden Tag beim ersten Öffnen eine Sicherung <code>arbeitszeit-JJJJ-MM-TT.json</code> an und behält die letzten 14.</li>
+<li><strong>Erinnerung:</strong> Bei „Nur auf diesem Gerät“ erinnert dich die App auf <em>Erfassen</em>, wenn die letzte Sicherung älter als 7 Tage ist.</li>
+</ul>
+<p><strong>Wiederherstellen</strong></p>
+<p>Die App merkt sich jeden Tag beim ersten Öffnen automatisch einen Stand und behält die letzten 7 Tage. Unter <em>Datenspeicherung → Wiederherstellen</em> wählst du einen Stand aus. Vorher wird der aktuelle Stand gesichert, du kannst das also rückgängig machen. Der wiederhergestellte Stand setzt sich auch in der Cloud durch.</p>
+<p><strong>Anzeige oben rechts</strong></p>
+<ul>
+<li>„lokal“ → Daten nur auf diesem Gerät</li>
+<li>„✓ Datei 14:30“, „✓ Google Drive 14:30“, „✓ Dropbox 14:30“ → alles abgeglichen</li>
+<li>„offline – lokal gespeichert“ → wird nachgeholt, sobald Internet da ist</li>
+<li>„🔄 Tippen zum Synchronisieren“ → kurz antippen und bei Google neu anmelden</li>
+<li>„🔄 Tippen, um die Datei freizugeben“ → nach einem Neustart des Browsers einmal den Zugriff auf die Datei erlauben</li>
+<li>„nicht verbunden“ → in den Einstellungen anmelden bzw. eine Datei wählen</li>
+</ul>
+
+<h2 id="hilfe-faq">Häufige Fragen</h2>
+<p><strong>Muss ich jede Unterrichtsstunde antippen?</strong> Nein, das macht der Stundenplan automatisch.</p>
+<p><strong>Ich habe vergessen, die Uhr zu starten.</strong> Reiter <em>Einträge</em> → „+ Eintrag nachtragen“.</p>
+<p><strong>Zählt „In der Schule“ doppelt, wenn ich dabei Unterricht habe?</strong> Nein. Jede Minute zählt nur einmal.</p>
+<p><strong>Warum habe ich in den Ferien kein Soll?</strong> Das Jahres-Soll ist schon auf die Schultage verteilt (siehe Abschnitt 4).</p>
+<p><strong>Ich mache jetzt eine andere Sonderaufgabe als vorher.</strong> Alte Aufgabe archivieren, neue anlegen – nicht umbenennen.</p>
+<p><strong>Wie übertrage ich meine Daten auf ein neues Handy?</strong>
+- <em>Mit Google Drive oder Dropbox:</em> App auf dem neuen Handy öffnen, dieselbe Speicherart wählen und anmelden. Die Daten kommen automatisch.
+- <em>Ohne Cloud:</em> Auf dem alten Gerät „Sicherung speichern“, die Datei z. B. per E-Mail aufs neue Handy schicken, dort „Sicherung laden“ → „Zusammenführen“.</p>
+<p class="hint">Version <span id="ver"></span></p></div></section>
  <section id="set" hidden>
-  <div class="card">
-   <b>Google Drive</b><a href="#" class="ib" onclick="showHelp('h-daten');return false" title="Hilfe">ⓘ</a><p id="acct" class="hint"></p>
-   <button class="btn" id="login" onclick="login()">Mit Google Drive verbinden</button>
-   <button class="btn sec" id="logout" onclick="logout()" hidden>Abmelden</button>
+  <div class="card" id="storagecard">
+   <b>Datenspeicherung</b><button class="info" onclick="showTab('hilfe','hilfe-daten')" title="Erklärung" aria-label="Erklärung zur Datenspeicherung">i</button>
+   <div class="hint">Gilt nur für dieses Gerät. Deine Daten bleiben immer auch hier gespeichert.</div>
+   <div id="storageopts"></div>
+   <div style="border-top:1px solid var(--bd);margin-top:10px;padding-top:10px">
+    <b style="font-size:15px">Sicherungen</b>
+    <p class="hint" id="baklast"></p>
+    <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn sec" onclick="downloadBackup()">Sicherung speichern</button><button class="btn sec" onclick="document.getElementById('bakfile').click()">Sicherung laden</button></div>
+    <input type="file" id="bakfile" accept=".json,application/json" hidden onchange="loadBackupFile(this)">
+    <p class="hint" id="autobak"></p>
+   </div>
+   <div style="border-top:1px solid var(--bd);margin-top:10px;padding-top:10px">
+    <b style="font-size:15px">Wiederherstellen</b>
+    <div class="hint">Die App merkt sich jeden Tag einen Stand (letzte 7 Tage).</div>
+    <div id="restorelist" style="margin-top:6px"></div>
+   </div>
   </div>
   <div class="card">
    <b>Stundenzeiten</b>
@@ -123,7 +296,7 @@ dialog{border:0;border-radius:12px;width:min(92vw,420px);background:var(--card);
    <div id="periods"></div>
   </div>
   <div class="card">
-   <b>Stundenplan</b><a href="#" class="ib" onclick="showHelp('h-weitere');return false" title="Hilfe">ⓘ</a>
+   <b>Stundenplan</b>
    <div id="versions" style="margin:8px 0"></div>
    <div class="hint" id="editing"></div>
    <div class="hint">Tippe an, welche Stunden du an welchem Tag unterrichtest. Sie werden an jedem Schultag automatisch als Unterricht gutgeschrieben (nicht an Feiertagen und in den Ferien).</div>
@@ -132,7 +305,13 @@ dialog{border:0;border-radius:12px;width:min(92vw,420px);background:var(--card);
    <div id="tt"></div>
   </div>
   <div class="card">
-   <b>Soll-Arbeitszeit</b><a href="#" class="ib" onclick="showHelp('h-soll');return false" title="Hilfe">ⓘ</a>
+   <b>Eigene Aufgaben</b>
+   <div class="hint">Für regelmäßige Sonderaufgaben, z. B. Personalrat, Vertretungsplan, IT-Ansprechpartner. Jede Aufgabe bekommt einen eigenen Button und erscheint in der Auswertung. Endet eine Aufgabe (z. B. zum Halbjahr), <b>archiviere</b> sie: Der Button verschwindet, die bisherige Zeit bleibt unter dem alten Namen erhalten.</div>
+   <div id="customlist" style="margin-top:8px"></div>
+   <div style="display:flex;gap:8px;margin-top:10px"><input id="cname" maxlength="30" placeholder="z. B. Personalrat"><button type="button" class="btn" onclick="addCustom()">+ Hinzufügen</button></div>
+  </div>
+  <div class="card">
+   <b>Soll-Arbeitszeit</b>
    <label>Wochenarbeitszeit bei Vollzeit (Std.)</label><input type="number" id="weekly" step="0.5" min="0">
    <label>Beschäftigungsumfang (%)</label><input type="number" id="umfang" min="0" max="100">
    <label>Urlaubstage pro Jahr</label><input type="number" id="urlaub" min="0" max="60">
@@ -156,101 +335,17 @@ dialog{border:0;border-radius:12px;width:min(92vw,420px);background:var(--card);
   </div>
   <button class="btn" onclick="saveSettings()">Einstellungen speichern</button>
  </section>
- <section id="hilfe" hidden>
-  <div class="card" id="h-top">
-   <h2>⏱ Kurzanleitung</h2>
-   <p>Mit dieser App erfasst du deine Arbeitszeit per Knopfdruck. Sie vergleicht sie mit deinem Soll und zeigt, ob du im Plus oder Minus bist.</p>
-   <div class="toc"><a href="#" onclick="helpGo('h-start');return false">Einrichten</a><a href="#" onclick="helpGo('h-erf');return false">Erfassen</a><a href="#" onclick="helpGo('h-ein');return false">Einträge</a><a href="#" onclick="helpGo('h-aus');return false">Auswertung</a><a href="#" onclick="helpGo('h-soll');return false">Soll</a><a href="#" onclick="helpGo('h-weitere');return false">Weiteres</a><a href="#" onclick="helpGo('h-daten');return false">Daten</a><a href="#" onclick="helpGo('h-faq');return false">Fragen</a></div>
-  </div>
-  <div class="card" id="h-start">
-   <h2>1. Einmalig einrichten</h2>
-   <ol>
-    <li><b>App installieren:</b> Android (Chrome): Menü ⋮ → „Zum Startbildschirm hinzufügen“. Windows (Edge/Chrome): Symbol „App installieren“ in der Adresszeile.</li>
-    <li><b>Google Drive verbinden</b> (Einstellungen): Dann sind die Daten auf allen Geräten gleich. Ohne Verbindung bleiben sie nur auf diesem Gerät.</li>
-    <li><b>Stundenzeiten:</b> Beginn und Ende der 1. bis 8. Stunde eintragen.</li>
-    <li><b>Stundenplan:</b> Antippen, welche Stunden du an welchem Tag unterrichtest. Bei wechselnden Wochen „A/B-Wochen“ anhaken und ein Datum aus einer A-Woche angeben.</li>
-    <li><b>Soll-Arbeitszeit:</b> Wochenarbeitszeit bei Vollzeit, Beschäftigungsumfang in % und Urlaubstage.</li>
-    <li><b>Ferien laden:</b> Einmal pro Schuljahr „Ferien laden“ tippen. Feiertage in Sachsen-Anhalt kennt die App schon.</li>
-    <li><b>Freie Tage:</b> Bewegliche Ferientage oder pädagogische Tage eintragen.</li>
-    <li>Zum Schluss <b>„Einstellungen speichern“</b>.</li>
-   </ol>
-   <p class="tip">💡 Deinen Unterricht laut Stundenplan musst du <b>nicht</b> erfassen. Er wird an jedem Schultag automatisch gutgeschrieben.</p>
-  </div>
-  <div class="card" id="h-erf">
-   <h2>2. Täglich erfassen</h2>
-   <dl>
-    <dt>🏫 In der Schule</dt><dd>Wenn du ankommst. Zählt deine Anwesenheit (Aufsicht, Gespräche, Freistunden …).</dd>
-    <dt>Vorbereitung, Korrekturen, Konferenz, Elternarbeit, Organisation/Sonstiges</dt><dd>Startet die Uhr für diese Tätigkeit. Ein Tipp auf einen anderen Knopf wechselt direkt.</dd>
-    <dt>Unterricht</dt><dd>Nur für <i>zusätzlichen</i> Unterricht, der nicht im Stundenplan steht.</dd>
-    <dt>☕ Pause</dt><dd>Nur in der Schule. Pausen <b>ab 15 Minuten</b> zählen nicht als Arbeitszeit, kürzere schon.</dd>
-    <dt>■ Stopp</dt><dd>Beendet die Tätigkeit. In der Schule geht es zurück zu „In der Schule“, ein zweiter Stopp beendet den Schultag.</dd>
-   </dl>
-   <h3>Außerdem</h3>
-   <ul>
-    <li><b>Schnellerfassung:</b> Tätigkeit wählen und +10 / +15 / +30 tippen, z. B. nach einem Elterntelefonat. Die Minuten werden rückwirkend bis jetzt gebucht.</li>
-    <li><b>+ Vertretungsstunde:</b> Bucht die laufende oder zuletzt beendete Stunde als Unterricht. Mit „Ändern“ oder „Rückgängig“ korrigierst du sie.</li>
-    <li><b>Vergessen zu stoppen?</b> Am nächsten Tag fragt die App, wann du aufgehört hast.</li>
-    <li>Vertippt und sofort gewechselt (unter 30 Sekunden)? Dann wird nichts gespeichert.</li>
-   </ul>
-  </div>
-  <div class="card" id="h-ein">
-   <h2>3. Einträge ansehen und korrigieren</h2>
-   <ul>
-    <li><b>✎</b> neben einem Eintrag: Zeit, Tätigkeit oder Notiz ändern oder löschen.</li>
-    <li><b>+ Eintrag nachtragen:</b> Für vergessene Arbeit, z. B. Korrekturen am Wochenende.</li>
-    <li><b>Stunde ausgefallen?</b> Stundennummer antippen. Sie wird durchgestrichen und nicht gutgeschrieben. Nochmal tippen macht es rückgängig.</li>
-    <li><b>Krank?</b> „krank (ganzer Tag)“ oder „krank ab … Stunde“ wählen. Für mehrere Tage ein Enddatum angeben. Dann entfallen Unterricht und Soll.</li>
-    <li><b>Bestimmten Tag anzeigen:</b> Springt zu einem Tag, auch in der Zukunft (z. B. Klassenfahrt).</li>
-   </ul>
-  </div>
-  <div class="card" id="h-aus">
-   <h2>4. Auswertung</h2>
-   <ul>
-    <li>Zeitraum wählen: <b>Tag, Woche, Monat, Halbjahr, Jahr, Schuljahr</b>. Mit ◀ ▶ blättern.</li>
-    <li><b>Ist</b> = deine erfasste Zeit · <b>Soll</b> = was du bis heute arbeiten solltest · <b>Saldo</b> = Plus (grün) oder Minus (rot).</li>
-    <li>Die <b>Zeitleiste</b> zeigt bei Tag und Woche, wann du was gemacht hast.</li>
-    <li><b>Als CSV exportieren:</b> Öffnet sich in Excel, z. B. zum Ausdrucken.</li>
-   </ul>
-  </div>
-  <div class="card" id="h-soll">
-   <h2>So wird das Soll berechnet</h2>
-   <p>Arbeitstage (Mo–Fr) im Schuljahr minus Feiertage und Urlaubstage ergeben das Jahres-Soll. Es wird auf die <b>Schultage</b> verteilt, weil Lehrkräfte die Ferienzeit in den Schulwochen „vorarbeiten“.</p>
-   <p>Deshalb ist dein Soll an Schultagen höher als bei einem normalen Arbeitstag, und in den Ferien ist es null. An Krankheitstagen entfällt das Soll.</p>
-  </div>
-  <div class="card" id="h-weitere">
-   <h2>5. Weitere Funktionen</h2>
-   <ul>
-    <li><b>Links:</b> Eigene Lesezeichen, z. B. Schulmanager oder Bildungsserver.</li>
-    <li><b>Neuer Stundenplan</b> (z. B. zum Halbjahr): Plan ändern und speichern. Die App fragt, ab wann er gilt: ab heute, ab einem Datum, als Korrektur oder ab Schuljahresbeginn. Ältere Zeiten bleiben dann richtig.</li>
-   </ul>
-  </div>
-  <div class="card" id="h-daten">
-   <h2>6. Wo sind meine Daten?</h2>
-   <ul>
-    <li>Immer auf dem Gerät gespeichert, auch ohne Internet.</li>
-    <li>Mit Verbindung zusätzlich in <b>Google Drive → Ordner „Arbeitszeit“ → arbeitszeit.json</b>. Die App sieht nur diese Datei, nicht deine anderen Dateien.</li>
-   </ul>
-   <h3>Anzeige oben rechts</h3>
-   <ul>
-    <li><b>„✓ Google Drive 14:30“</b> – alles abgeglichen</li>
-    <li><b>„offline – lokal gespeichert“</b> – wird nachgeholt, sobald Internet da ist</li>
-    <li><b>„🔄 Tippen zum Synchronisieren“</b> – kurz antippen und neu anmelden</li>
-   </ul>
-  </div>
-  <div class="card" id="h-faq">
-   <h2>Häufige Fragen</h2>
-   <dl>
-    <dt>Muss ich jede Unterrichtsstunde antippen?</dt><dd>Nein, das macht der Stundenplan automatisch.</dd>
-    <dt>Ich habe vergessen, die Uhr zu starten.</dt><dd>Reiter „Einträge“ → „+ Eintrag nachtragen“.</dd>
-    <dt>Zählt „In der Schule“ doppelt, wenn ich dabei Unterricht habe?</dt><dd>Nein. Jede Minute zählt nur einmal.</dd>
-    <dt>Warum habe ich in den Ferien kein Soll?</dt><dd>Das Jahres-Soll ist schon auf die Schultage verteilt (siehe „Soll“).</dd>
-   </dl>
-  </div>
-  <button class="btn" style="width:100%" onclick="closeHelp()">← Zurück zur App</button>
- </section>
 </main>
 <div id="toast"></div>
 
+<dialog id="bdlg"><form method="dialog">
+ <b>Sicherung laden</b>
+ <p class="hint" id="bdtext"></p>
+ <div style="display:flex;flex-direction:column;gap:8px;margin-top:10px">
+  <button value="merge" class="btn">Zusammenführen (empfohlen)</button>
+  <button value="replace" class="btn sec" style="color:var(--red);border-color:var(--red)">Ersetzen</button>
+  <button value="cancel" class="btn sec">Abbrechen</button></div>
+</form></dialog>
 <dialog id="odlg"><form method="dialog">
  <b>Erfassung läuft noch</b>
  <p class="hint" id="otext"></p>
@@ -280,11 +375,21 @@ dialog{border:0;border-radius:12px;width:min(92vw,420px);background:var(--card);
 
 <script>
 /* ===== Konfiguration: hier die Anwendungs-ID aus dem Azure-Portal eintragen ===== */
+const DROPBOX_KEY = "HIER_APP_KEY";   // Dropbox-App-Key (App-Konsole → Settings → App key)
 const CLIENT_ID = "676671418561-u8sq0lmimfsnqa1oqno6vl92d0d1imcj.apps.googleusercontent.com";   // Google OAuth-Client-ID (…apps.googleusercontent.com)
-const VERSION = "1.1";
+const VERSION = "1.3";
 
 const CATS = {U:"Unterricht", V:"Vorbereitung", K:"Korrekturen", KF:"Konferenz", E:"Elternarbeit", O:"Organisation/Sonstiges", S:"Präsenz in der Schule"};
 const LABEL = {...CATS, P:"Pause (zählt nicht)", TT:"Unterricht (Stundenplan)"};
+const BASE_KEYS = Object.keys(CATS);
+/* Eigene Aufgaben: settings.custom = [{id:"C…", name, active}] – archivierte bleiben in Auswertungen sichtbar */
+const CUSTOM_COLORS = ["#1abc9c","#e67e22","#8e44ad","#2e86c1","#a04000","#d4ac0d","#117a65","#cb4335"];
+const customList = () => Array.isArray(data.settings.custom) ? data.settings.custom : [];
+function applyCustom(){
+  Object.keys(CATS).filter(k => !BASE_KEYS.includes(k)).forEach(k => { delete CATS[k]; delete LABEL[k]; delete COL[k]; });
+  customList().forEach((c,i) => { CATS[c.id] = c.name; LABEL[c.id] = c.name; COL[c.id] = CUSTOM_COLORS[i % CUSTOM_COLORS.length]; });
+}
+const activeCustom = () => customList().filter(c => c.active);
 const PAUSE_MIN = 15;   // Pausen ab 15 Min. am Stück sind Ruhepausen, kürzere zählen als Arbeitszeit (Verteilzeit)
 const COL = {TT:"#2b5797", U:"#5b8bd6", V:"#1e8449", K:"#d68910", KF:"#7d3c98", E:"#c0392b", O:"#7f8c8d", S:"#17a589", P:"#b9bec9"};
 const DAYS = ["Mo","Di","Mi","Do","Fr"];
@@ -544,6 +649,56 @@ function delFree(a, b){
   data.settings.free = freeLines().filter(l => { const m = l.match(/(\d{4}-\d\d-\d\d)(?:\s*(?:bis|-|–)\s*(\d{4}-\d\d-\d\d))?/); return !(m && m[1] === a && (m[2] || m[1]) === b); }).join("\n");
   data.settings.upd = Date.now(); persist(); queueSync(); renderFree();
 }
+/* Eigene Aufgaben verwalten (speichert sofort, ohne ungespeicherte Stundenplan-Eingaben zu verwerfen) */
+function customUsed(id){ return data.entries.some(e => !e.del && e.cat === id) || data.running.cat === id; }
+function renderCustom(){
+  const L = customList(), sb = "padding:6px 10px";
+  document.getElementById("customlist").innerHTML = L.length ? L.map(c =>
+    `<div class="ver"><span><i style="display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:6px;background:${COL[c.id]}"></i>${esc(c.name)}${c.active ? "" : ' <small class="hint">archiviert</small>'}</span>
+     <span style="display:flex;gap:4px;flex-wrap:wrap;justify-content:flex-end">
+      <button type="button" class="btn sec" style="${sb}" onclick="renameCustom('${c.id}')">✎</button>
+      <button type="button" class="btn sec" style="${sb}" onclick="toggleCustom('${c.id}')">${c.active ? "Archivieren" : "Wieder aktivieren"}</button>
+      ${customUsed(c.id) ? "" : `<button type="button" class="btn sec" style="${sb};color:var(--red);border-color:var(--red)" onclick="delCustom('${c.id}')">✕</button>`}</span></div>`).join("")
+    : '<p class="hint">Noch keine eigenen Aufgaben.</p>';
+}
+function setCustom(L){ data.settings.custom = L; data.settings.upd = Date.now(); applyCustom(); persist(); queueSync(); renderCustom(); renderCatOptions(); }
+function addCustom(){
+  const n = document.getElementById("cname").value.trim();
+  if (!n){ alert("Bitte einen Namen eingeben."); return; }
+  if (Object.values(CATS).some(v => v.toLowerCase() === n.toLowerCase())){ alert("Diesen Namen gibt es schon."); return; }
+  setCustom(customList().concat([{id:"C" + Date.now().toString(36), name:n, active:true}]));
+  document.getElementById("cname").value = ""; toast(`Aufgabe „${n}“ angelegt – der Button ist unter „Erfassen“`);
+}
+function renameCustom(id){
+  const c = customList().find(x => x.id === id); if (!c) return;
+  const n = (prompt("Neuer Name (nur für Tippfehler – für eine neue Aufgabe lieber archivieren und neu anlegen):", c.name) || "").trim().slice(0,30);
+  if (!n || n === c.name) return;
+  setCustom(customList().map(x => x.id === id ? {...x, name:n} : x));
+}
+function toggleCustom(id){
+  if (data.running.cat === id){ alert("Diese Aufgabe läuft gerade. Bitte zuerst stoppen."); return; }
+  setCustom(customList().map(x => x.id === id ? {...x, active:!x.active} : x));
+}
+function delCustom(id){
+  const c = customList().find(x => x.id === id); if (!c || !confirm(`„${c.name}“ löschen?`)) return;
+  setCustom(customList().filter(x => x.id !== id));
+}
+/* Personalrat: Adresse in settings.prMail (wird mit synchronisiert), Standard unten */
+const PR_DEFAULT = "schulpersonalrat@sks-goethe-merseburg.bildung-lsa.de";
+const prMail = () => data.settings.prMail || PR_DEFAULT;
+function renderPr(){
+  const a = prMail(), el = document.getElementById("prmail"); if (!el) return;
+  el.href = "mailto:" + encodeURIComponent(a).replace(/%40/g, "@") + "?subject=" + encodeURIComponent("Information an den Personalrat");
+  document.getElementById("praddr").textContent = "An: " + a + (data.settings.prMail ? "" : " (Standard)");
+  const inp = document.getElementById("prinput"); if (document.activeElement !== inp) inp.value = a;
+}
+function savePrMail(){
+  const v = document.getElementById("prinput").value.trim();
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v)){ alert("Bitte eine gültige E-Mail-Adresse eingeben."); return; }
+  data.settings.prMail = v === PR_DEFAULT ? "" : v; data.settings.upd = Date.now();
+  persist(); queueSync(); renderPr(); document.getElementById("predit").open = false; toast("Adresse gespeichert");
+}
+function resetPrMail(){ data.settings.prMail = ""; data.settings.upd = Date.now(); persist(); queueSync(); renderPr(); toast("Standardadresse wiederhergestellt"); }
 /* Links */
 const DEF_LINKS = [{name:"Schulmanager Online", url:"https://login.schulmanager-online.de/"}, {name:"Bildungsserver Sachsen-Anhalt", url:"https://www.bildung-lsa.de/"}];
 const getLinks = () => Array.isArray(data.settings.links) ? data.settings.links : DEF_LINKS;
@@ -582,7 +737,7 @@ function dayTimeline(d, entries){
   const order = x => x.cat === "S" ? 0 : x.cat === "P" ? 2 : 1;
   let ax = ""; for (let t = L; t <= L + W; t += 3600000) ax += `<span style="left:${pc(t)}%">${new Date(t).getHours()}</span>`;
   const t0 = new Date(d); t0.setHours(0,0,0,0); const sm = sums(t0, new Date(+t0 + 86400000));
-  const leg = ["TT","U","S","V","K","KF","E","O","P"].filter(k => sm[k] > 0.5)
+  const leg = ["TT","U","S","V","K","KF","E","O", ...customList().map(c => c.id), "P"].filter(k => sm[k] > 0.5)
     .map(k => `<span><i style="background:${COL[k]}"></i>${k === "TT" ? "Unterricht" : k === "U" ? "Unterricht zusätzl." : k === "S" ? "Präsenz" : k === "P" ? "Pause" : CATS[k]} ${hm(sm[k])}</span>`).join("");
   return `<div class="tl">${iv.sort((a,b) => order(a) - order(b)).map(bar).join("")}</div><div class="tlax">${ax}</div>`
     + `<div class="leg"><span><b>Gesamt ${hm(total(sm))}</b></span>${leg}</div>`;
@@ -700,12 +855,14 @@ const total = s => Object.entries(s).reduce((a,[k,v]) => k === "P" ? a : a + v, 
 
 /* ===== Darstellung ===== */
 function render(){
+  applyCustom(); renderCatOptions(); renderBackupHint();
   // Erfassen
   const R = data.running, sch = inSchool();
   document.getElementById("cats").innerHTML =
     `<button class="cat school ${R.cat==="S"?"on":""}" onclick="startCat('S')">🏫 In der Schule${sch ? " ✓" : ""}</button>`
-    + Object.entries(CATS).filter(([k]) => k !== "S").map(([k,v]) =>
+    + Object.entries(CATS).filter(([k]) => BASE_KEYS.includes(k) && k !== "S").map(([k,v]) =>
     `<button class="cat ${R.cat===k?"on":""}" onclick="startCat('${k}')">${v}</button>`).join("")
+    + activeCustom().map(c => `<button class="cat ${R.cat===c.id?"on":""}" style="border-color:${COL[c.id]}" onclick="startCat('${c.id}')">${esc(c.name)}</button>`).join("")
     + (sch ? `<button class="pausebtn ${R.cat==="P"?"on":""}" onclick="pauseToggle()">${R.cat==="P" ? "▶ Pause beenden" : "☕ Pause"}</button>` : "")
     + `<button class="stop" onclick="stop()">■ Stopp${R.school && R.cat !== "S" && R.cat !== "P" ? " – zurück zu „In der Schule“" : sch ? " – Schultag beenden" : ""}</button>`;
   const t0 = new Date(); t0.setHours(0,0,0,0); const t1 = new Date(t0); t1.setDate(t0.getDate()+1);
@@ -740,7 +897,8 @@ function render(){
     + (running ? `<div class="row"><span class="hint">Soll im gesamten Zeitraum</span><span class="hint">${hm(sollAll)}</span></div>` : "")
     + (sickDays(p.from, p.to) > 0 ? `<div class="row"><span>Krankheitstage (Soll entfällt)</span><b>${String(Math.round(sickDays(p.from, p.to)*10)/10).replace(".", ",")}</b></div>` : "")
     + (+p.from > Date.now() ? `<div class="hint">Zeitraum liegt in der Zukunft.</div>` : "");
-  const rows = [["TT","Unterricht (Stundenplan)"], ["U","Unterricht (zusätzlich)"], ["S","Präsenz in der Schule"], ...Object.entries(CATS).filter(([k]) => k !== "U" && k !== "S")];
+  const rows = [["TT","Unterricht (Stundenplan)"], ["U","Unterricht (zusätzlich)"], ["S","Präsenz in der Schule"], ...Object.entries(CATS).filter(([k]) => BASE_KEYS.includes(k) && k !== "U" && k !== "S"),
+    ...customList().filter(c => c.active || s[c.id] > 0).map(c => [c.id, c.name + (c.active ? "" : " (archiviert)")])];
   const mx = Math.max(1, ...rows.map(([k]) => s[k]));
   // Zeitleiste: Tag = ein Balken, Woche = ein Balken je Tag
   const tlEl = document.getElementById("tline");
@@ -778,14 +936,9 @@ function render(){
   document.getElementById("umfang").value = S.umfang;
   document.getElementById("urlaub").value = S.urlaub;
   document.getElementById("sdate").value = S.startDate;
-  renderFree(); renderLinks();
+  renderFree(); renderLinks(); renderCustom(); renderPr();
   renderHol();
-  const con = lsGet("gd-connected") === "1", ok = !CLIENT_ID.startsWith("HIER");
-  document.getElementById("acct").textContent = !ok ? "Noch keine Client-ID eingetragen (siehe Anleitung)."
-    : con ? "Verbunden. Die Daten liegen in Google Drive im Ordner „Arbeitszeit“ (Datei arbeitszeit.json)."
-    : "Nicht verbunden – Daten liegen nur auf diesem Gerät.";
-  document.getElementById("login").hidden = con || !ok;
-  document.getElementById("logout").hidden = !con;
+  renderStorage();
 }
 let planDraft = null;
 function readPeriods(){
@@ -864,30 +1017,21 @@ function tick(){
 }
 setInterval(tick, 1000);
 
-let tab = "erf";
-function showTab(t){
-  tab = t; document.getElementById("helpbtn").classList.remove("on");
+function showTab(t, anchor){
   document.querySelectorAll("nav button").forEach(b => b.classList.toggle("on", b.dataset.t === t));
   document.querySelectorAll("main section").forEach(s => s.hidden = s.id !== t);
   render();
+  if (anchor){ const el = document.getElementById(anchor); if (el) el.scrollIntoView({behavior:"smooth"}); } else window.scrollTo(0, 0);
 }
 document.getElementById("nav").onclick = e => { const t = e.target.dataset.t; if (t) showTab(t); };
-/* ===== Hilfe ===== */
-const helpOpen = () => !document.getElementById("hilfe").hidden;
-function helpGo(id){ const el = document.getElementById(id); if (el) el.scrollIntoView({behavior:"smooth", block:"start"}); }
-function showHelp(id){
-  document.querySelectorAll("main section").forEach(s => s.hidden = s.id !== "hilfe");
-  document.querySelectorAll("nav button").forEach(b => b.classList.remove("on"));
-  document.getElementById("helpbtn").classList.add("on");
-  if (id) setTimeout(() => helpGo(id), 0); else window.scrollTo(0, 0);
-}
-function closeHelp(){ showTab(tab); window.scrollTo(0, 0); }
-function toggleHelp(){ helpOpen() ? closeHelp() : showHelp(); }
 document.querySelectorAll("[data-p]").forEach(b => b.onclick = () => { per.t = b.dataset.p; per.o = 0; render(); });
-const catOptions = Object.entries(CATS).map(([k,v]) => `<option value="${k}">${v}</option>`).join("");
-document.getElementById("fcat").innerHTML = catOptions + `<option value="P">${LABEL.P}</option>`;
-document.getElementById("qcat").innerHTML = catOptions;
-document.getElementById("qcat").value = "E";
+function renderCatOptions(){
+  const base = BASE_KEYS.map(k => `<option value="${k}">${CATS[k]}</option>`).join("");
+  const q = document.getElementById("qcat"), f = document.getElementById("fcat"), qv = q.value || "E", fv = f.value;
+  q.innerHTML = base + activeCustom().map(c => `<option value="${c.id}">${esc(c.name)}</option>`).join("");
+  f.innerHTML = base + customList().map(c => `<option value="${c.id}">${esc(c.name)}${c.active ? "" : " (archiviert)"}</option>`).join("") + `<option value="P">${LABEL.P}</option>`;
+  q.value = [...q.options].some(o => o.value === qv) ? qv : "E"; if (fv) f.value = fv;
+}
 
 /* ===== Nachtragen / Korrigieren ===== */
 const toInput = ms => { const d = new Date(ms); return `${iso(d)}T${pad(d.getHours())}:${pad(d.getMinutes())}`; };
@@ -928,7 +1072,7 @@ async function saveSettings(){
     editFrom = null;
   }
   data.settings = {versions:V, weekly:+v("weekly") || 0, umfang:+v("umfang") || 0, urlaub:+v("urlaub") || 0,
-    startDate:v("sdate") || S.startDate, free:S.free, links:S.links, upd:Date.now()};
+    startDate:v("sdate") || S.startDate, free:S.free, links:S.links, custom:S.custom, prMail:S.prMail, upd:Date.now()};
   save(); toast(changed ? "Stundenplan und Einstellungen gespeichert" : "Einstellungen gespeichert");
 }
 function csv(){
@@ -936,7 +1080,7 @@ function csv(){
   const lines = ["Datum;Beginn;Ende;Tätigkeit;Minuten;Notiz"];
   data.entries.filter(e => !e.del && e.start >= +p.from && e.start < +p.to).sort((a,b) => a.start - b.start).forEach(e => {
     const a = new Date(e.start), b = new Date(e.end), t = x => x.toLocaleTimeString("de-DE").slice(0,5);
-    lines.push([a.toLocaleDateString("de-DE"), t(a), t(b), CATS[e.cat]||e.cat, Math.round((e.end-e.start)/60000), '"'+(e.note||"").replace(/"/g,'""')+'"'].join(";"));
+    lines.push([a.toLocaleDateString("de-DE"), t(a), t(b), LABEL[e.cat]||e.cat, Math.round((e.end-e.start)/60000), '"'+(e.note||"").replace(/"/g,'""')+'"'].join(";"));
   });
   const sollBis = sollMinutes(p.from, new Date(Math.min(+p.to, +endOfToday()))), ist = total(s);
   lines.push("", `;;;Unterricht (Stundenplan);${Math.round(s.TT)};`, `;;;Ist gesamt;${Math.round(ist)};`,
@@ -947,63 +1091,222 @@ function csv(){
   document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 5000);
 }
 
-/* ===== Google-Drive-Synchronisation ===== */
-/* Berechtigung drive.file: Die App sieht nur Dateien, die sie selbst angelegt hat.
-   Daten: Google Drive > Arbeitszeit > arbeitszeit.json (normale, sichtbare Datei) */
-const SCOPE = "https://www.googleapis.com/auth/drive.file";
-const API = "https://www.googleapis.com/drive/v3/files", UP = "https://www.googleapis.com/upload/drive/v3/files";
+/* ===== Datenspeicherung: nur Gerät, Datei auf dem PC, Google Drive, Dropbox =====
+   Die Daten liegen immer im localStorage. Ein „Anbieter“ (FILE, GDRIVE, DROPBOX) liefert nur
+   ready() / read() / write(); der Abgleich (laden → merge → hochladen) ist für alle gleich. */
 const lsGet = k => { try { return localStorage.getItem(k); } catch(e){ return null; } };
 const lsSet = (k, v) => { try { v === null ? localStorage.removeItem(k) : localStorage.setItem(k, v); } catch(e){} };
+function setStatus(t, onclick){
+  const el = document.getElementById("status"); el.textContent = t;
+  el.style.cursor = onclick ? "pointer" : ""; el.onclick = onclick || null;
+}
+const hhmm = () => new Date().toLocaleTimeString("de-DE").slice(0,5);
+const todayIso = () => iso(new Date());
+const MODES = {local:"Nur auf diesem Gerät", file:"Datei auf diesem PC", gdrive:"Google Drive", dropbox:"Dropbox"};
+const fileSupported = () => typeof window.showSaveFilePicker === "function";
+const dropboxReady = () => !DROPBOX_KEY.startsWith("HIER");
+function getMode(){   // nur im Gerät gespeichert, nicht in data
+  let m = lsGet("az-mode");
+  if (!m) m = lsGet("gd-connected") === "1" ? "gdrive" : "local";   // Übernahme aus v1.1
+  if (!MODES[m] || (m === "file" && !fileSupported()) || (m === "dropbox" && !dropboxReady())) m = "local";
+  return m;
+}
+function setMode(m){ lsSet("az-mode", m); render(); sync(); }
+
+/* ---- IndexedDB: Datei-Handles (kv) und Wiederherstellungspunkte (restore) ---- */
+let idbP = null;
+function idb(){
+  if (!idbP) idbP = new Promise((res, rej) => {
+    if (!window.indexedDB) return rej(new Error("kein IndexedDB"));
+    const r = indexedDB.open("arbeitszeit", 1);
+    r.onupgradeneeded = () => { const d = r.result; d.createObjectStore("kv"); d.createObjectStore("restore"); };
+    r.onsuccess = () => res(r.result); r.onerror = () => rej(r.error);
+  });
+  return idbP;
+}
+async function idbReq(store, mode, fn){
+  const d = await idb();
+  return new Promise((res, rej) => {
+    const tx = d.transaction(store, mode), r = fn(tx.objectStore(store));
+    tx.oncomplete = () => res(r && r.result); tx.onerror = () => rej(tx.error);
+  });
+}
+const idbGet = (st, k) => idbReq(st, "readonly", s => s.get(k));
+const idbSet = (st, k, v) => idbReq(st, "readwrite", s => s.put(v, k));
+const idbDel = (st, k) => idbReq(st, "readwrite", s => s.delete(k));
+const idbKeys = st => idbReq(st, "readonly", s => s.getAllKeys());
+
+/* ---- Anbieter: Google Drive (Berechtigung drive.file, Datei Arbeitszeit/arbeitszeit.json) ---- */
+const SCOPE = "https://www.googleapis.com/auth/drive.file";
+const API = "https://www.googleapis.com/drive/v3/files", UP = "https://www.googleapis.com/upload/drive/v3/files";
 let tokenClient = null;
-const setStatus = t => document.getElementById("status").textContent = t;
 function gisReady(){
   if (CLIENT_ID.startsWith("HIER") || !window.google) return;
   tokenClient = google.accounts.oauth2.initTokenClient({client_id:CLIENT_ID, scope:SCOPE, callback: r => {
     if (r.error || !r.access_token){ setStatus("Anmeldung abgebrochen"); return; }
     lsSet("gd-token", JSON.stringify({t:r.access_token, exp:Date.now() + (r.expires_in - 60)*1000}));
-    lsSet("gd-connected", "1"); render(); sync();
+    lsSet("gd-connected", "1"); lsSet("az-mode", "gdrive"); render(); sync();
   }});
-  showStatus();
+  updateStatus();
 }
-function login(){ if (tokenClient) tokenClient.requestAccessToken({prompt:"consent"}); else alert("Google-Anmeldung noch nicht geladen. Bitte Internetverbindung prüfen."); }
-function relogin(){ if (tokenClient && lsGet("gd-connected") === "1") tokenClient.requestAccessToken({prompt:""}); }
-function logout(){
-  const t = token(); if (t && window.google) google.accounts.oauth2.revoke(t, () => {});
-  ["gd-token","gd-connected","gd-file"].forEach(k => lsSet(k, null)); setStatus("lokal"); render();
+function gLogin(){ if (tokenClient) tokenClient.requestAccessToken({prompt:"consent"}); else alert("Google-Anmeldung noch nicht geladen. Bitte Internetverbindung prüfen."); }
+function gRelogin(){ if (tokenClient && lsGet("gd-connected") === "1") tokenClient.requestAccessToken({prompt:""}); }
+function gLogout(){
+  const t = gToken(); if (t && window.google) google.accounts.oauth2.revoke(t, () => {});
+  ["gd-token","gd-connected","gd-file"].forEach(k => lsSet(k, null)); render(); updateStatus();
 }
-function token(){ try { const x = JSON.parse(lsGet("gd-token")); return x && x.exp > Date.now() ? x.t : null; } catch(e){ return null; } }
-function showStatus(){
-  const el = document.getElementById("status");
-  if (lsGet("gd-connected") === "1" && !token()){ el.textContent = "🔄 Tippen zum Synchronisieren"; el.style.cursor = "pointer"; el.onclick = relogin; }
-  else { el.style.cursor = ""; el.onclick = null; }
-}
-async function api(url, opt = {}){
-  const r = await fetch(url, {...opt, cache:"no-store", headers:{Authorization:"Bearer " + token(), ...(opt.headers || {})}});
-  if (r.status === 401){ lsSet("gd-token", null); throw new Error("401"); }
+function gToken(){ try { const x = JSON.parse(lsGet("gd-token")); return x && x.exp > Date.now() ? x.t : null; } catch(e){ return null; } }
+async function gApi(url, opt = {}){
+  const r = await fetch(url, {...opt, cache:"no-store", headers:{Authorization:"Bearer " + gToken(), ...(opt.headers || {})}});
+  if (r.status === 401){ lsSet("gd-token", null); throw Object.assign(new Error("401"), {auth:true}); }
   return r;
 }
 async function findOne(q){
-  const r = await api(`${API}?q=${encodeURIComponent(q + " and trashed=false")}&spaces=drive&fields=files(id)`);
+  const r = await gApi(`${API}?q=${encodeURIComponent(q + " and trashed=false")}&spaces=drive&fields=files(id)`);
   if (!r.ok) throw new Error(r.status);
   const j = await r.json(); return j.files && j.files[0] ? j.files[0].id : null;
 }
 async function fileId(){
   let id = lsGet("gd-file");
-  if (id){ const r = await api(`${API}/${id}?fields=id,trashed`); if (r.ok && !(await r.json()).trashed) return id; lsSet("gd-file", null); }
+  if (id){ const r = await gApi(`${API}/${id}?fields=id,trashed`); if (r.ok && !(await r.json()).trashed) return id; lsSet("gd-file", null); }
   id = await findOne("name='arbeitszeit.json'");
   if (!id){
     let folder = await findOne("name='Arbeitszeit' and mimeType='application/vnd.google-apps.folder'");
     if (!folder){
-      const r = await api(API, {method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({name:"Arbeitszeit", mimeType:"application/vnd.google-apps.folder"})});
+      const r = await gApi(API, {method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({name:"Arbeitszeit", mimeType:"application/vnd.google-apps.folder"})});
       if (!r.ok) throw new Error(r.status); folder = (await r.json()).id;
     }
     const b = "azb" + Date.now(), meta = {name:"arbeitszeit.json", parents:[folder], mimeType:"application/json"};
     const body = `--${b}\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n${JSON.stringify(meta)}\r\n--${b}\r\nContent-Type: application/json\r\n\r\n${JSON.stringify(data, null, 1)}\r\n--${b}--`;
-    const r = await api(`${UP}?uploadType=multipart&fields=id`, {method:"POST", headers:{"Content-Type":"multipart/related; boundary=" + b}, body});
+    const r = await gApi(`${UP}?uploadType=multipart&fields=id`, {method:"POST", headers:{"Content-Type":"multipart/related; boundary=" + b}, body});
     if (!r.ok) throw new Error(r.status); id = (await r.json()).id;
   }
   lsSet("gd-file", id); return id;
 }
+const GDRIVE = {
+  label:"Google Drive",
+  async ready(){
+    if (CLIENT_ID.startsWith("HIER")) return {msg:"lokal"};
+    if (lsGet("gd-connected") !== "1") return {msg:"nicht verbunden"};
+    if (!gToken()) return {msg:"🔄 Tippen zum Synchronisieren", click:gRelogin};
+    return true;
+  },
+  async read(){ const id = await fileId(); const r = await gApi(`${API}/${id}?alt=media`); if (!r.ok) throw new Error(r.status); return r.text(); },
+  async write(t){ const id = await fileId(); const w = await gApi(`${UP}/${id}?uploadType=media`, {method:"PATCH", headers:{"Content-Type":"application/json"}, body:t}); if (!w.ok) throw new Error(w.status); }
+};
+
+/* ---- Anbieter: Dropbox (OAuth 2 mit PKCE, ohne Server/Secret; Zugriff „App folder“) ---- */
+const DBX_PATH = "/arbeitszeit.json";
+const dbxRedirect = () => location.origin + location.pathname;
+const b64url = buf => btoa(String.fromCharCode(...new Uint8Array(buf))).replace(/\+/g,"-").replace(/\//g,"_").replace(/=+$/,"");
+function dbxTok(){ try { return JSON.parse(lsGet("dbx-token")); } catch(e){ return null; } }
+function dbxStore(j){
+  const old = dbxTok() || {};
+  lsSet("dbx-token", JSON.stringify({t:j.access_token, exp:Date.now() + ((j.expires_in || 14400) - 120)*1000, r:j.refresh_token || old.r}));
+}
+async function dbxLogin(){
+  if (!dropboxReady()) return;
+  const v = b64url(crypto.getRandomValues(new Uint8Array(48)));
+  const ch = b64url(await crypto.subtle.digest("SHA-256", new TextEncoder().encode(v)));
+  const st = b64url(crypto.getRandomValues(new Uint8Array(16)));
+  lsSet("dbx-pkce", JSON.stringify({v, st}));
+  location.href = "https://www.dropbox.com/oauth2/authorize?" + new URLSearchParams({client_id:DROPBOX_KEY, response_type:"code",
+    code_challenge:ch, code_challenge_method:"S256", token_access_type:"offline", redirect_uri:dbxRedirect(), state:st});
+}
+async function dbxHandleRedirect(){   // Rückkehr von Dropbox: ?code=…&state=…
+  const q = new URLSearchParams(location.search);
+  if (!q.has("code") && !q.has("error")) return;
+  const clean = () => history.replaceState(null, "", location.pathname + location.hash);
+  let pk = null; try { pk = JSON.parse(lsGet("dbx-pkce")); } catch(e){}
+  lsSet("dbx-pkce", null);
+  if (q.has("error") || !pk || q.get("state") !== pk.st || !dropboxReady()){ clean(); if (q.has("error")) toast("Dropbox-Anmeldung abgebrochen"); return; }
+  try {
+    const r = await fetch("https://api.dropboxapi.com/oauth2/token", {method:"POST", body:new URLSearchParams({code:q.get("code"),
+      grant_type:"authorization_code", code_verifier:pk.v, client_id:DROPBOX_KEY, redirect_uri:dbxRedirect()})});
+    if (!r.ok) throw new Error(r.status);
+    dbxStore(await r.json()); lsSet("az-mode", "dropbox"); toast("Mit Dropbox verbunden");
+  } catch(e){ toast("Dropbox-Anmeldung fehlgeschlagen"); }
+  clean();
+}
+async function dbxAccess(){   // gültiges Access Token, bei Bedarf per Refresh Token erneuert
+  const k = dbxTok(); if (!k) return null;
+  if (k.exp > Date.now()) return k.t;
+  if (!k.r) { lsSet("dbx-token", null); return null; }
+  const r = await fetch("https://api.dropboxapi.com/oauth2/token", {method:"POST", body:new URLSearchParams({grant_type:"refresh_token", refresh_token:k.r, client_id:DROPBOX_KEY})});
+  if (r.status === 400 || r.status === 401){ lsSet("dbx-token", null); return null; }
+  if (!r.ok) throw new Error(r.status);
+  dbxStore(await r.json()); return dbxTok().t;
+}
+async function dbxFetch(url, opt, retry = true){
+  const t = await dbxAccess(); if (!t) throw Object.assign(new Error("auth"), {auth:true});
+  const r = await fetch(url, {...opt, headers:{Authorization:"Bearer " + t, ...(opt.headers || {})}});
+  if (r.status === 401 && retry){ const k = dbxTok(); if (k){ k.exp = 0; lsSet("dbx-token", JSON.stringify(k)); } return dbxFetch(url, opt, false); }
+  return r;
+}
+async function dbxLogout(){
+  try { const t = await dbxAccess(); if (t) await fetch("https://api.dropboxapi.com/2/auth/token/revoke", {method:"POST", headers:{Authorization:"Bearer " + t}}); } catch(e){}
+  lsSet("dbx-token", null); render(); updateStatus();
+}
+const DROPBOX = {
+  label:"Dropbox",
+  async ready(){ if (!dropboxReady()) return {msg:"lokal"}; if (!dbxTok()) return {msg:"nicht verbunden"}; return true; },
+  async read(){
+    const r = await dbxFetch("https://content.dropboxapi.com/2/files/download", {method:"POST", headers:{"Dropbox-API-Arg":JSON.stringify({path:DBX_PATH})}});
+    if (r.status === 409){ const t = await r.text(); if (/not_found/.test(t)) return null; throw new Error("409"); }
+    if (!r.ok) throw new Error(r.status);
+    return r.text();
+  },
+  async write(t){
+    const r = await dbxFetch("https://content.dropboxapi.com/2/files/upload", {method:"POST",
+      headers:{"Dropbox-API-Arg":JSON.stringify({path:DBX_PATH, mode:"overwrite", mute:true}), "Content-Type":"application/octet-stream"}, body:new Blob([t])});
+    if (!r.ok) throw new Error(r.status);
+  }
+};
+
+/* ---- Anbieter: Datei auf diesem PC (File System Access API, Handle in IndexedDB) ---- */
+let fileH = null, bakDirH = null;
+async function loadHandles(){   // nur im Dateimodus lesen – andere Geräte/Modi brauchen die Handles nicht
+  if (lsGet("az-mode") !== "file" || !fileSupported()) return;
+  try { fileH = (await idbGet("kv", "file")) || null; bakDirH = (await idbGet("kv", "bakdir")) || null; } catch(e){}
+}
+async function perm(h, ask){
+  try { const o = {mode:"readwrite"}; if ((await h.queryPermission(o)) === "granted") return true; return ask ? (await h.requestPermission(o)) === "granted" : false; }
+  catch(e){ return false; }
+}
+const JSON_TYPES = [{description:"Arbeitszeit-Daten", accept:{"application/json":[".json"]}}];
+const FILE = {
+  label:"Datei",
+  async ready(){
+    if (!fileH) return {msg:"keine Datei gewählt"};
+    if (!(await perm(fileH, false))) return {msg:"🔄 Tippen, um die Datei freizugeben", click: async () => {
+      if (await perm(fileH, true)){ if (bakDirH) await perm(bakDirH, true); sync(); } }};
+    return true;
+  },
+  async read(){ return (await fileH.getFile()).text(); },
+  async write(t){ const w = await fileH.createWritable(); await w.write(t); await w.close(); }
+};
+async function chooseFile(open){
+  try {
+    let h;
+    if (open) [h] = await window.showOpenFilePicker({types:JSON_TYPES});
+    else h = await window.showSaveFilePicker({suggestedName:"arbeitszeit.json", types:JSON_TYPES});
+    if (!(await perm(h, true))){ toast("Ohne Schreibrecht kann die Datei nicht genutzt werden."); return; }
+    fileH = h; await idbSet("kv", "file", h); lsSet("az-mode", "file");
+    if (!bakDirH && typeof window.showDirectoryPicker === "function"
+        && confirm("Möchtest du zusätzlich einen Ordner für automatische tägliche Sicherungen wählen? (empfohlen)")) await chooseBakDir();
+    render(); sync();
+  } catch(e){ if (e.name !== "AbortError") toast("Datei konnte nicht gewählt werden."); }
+}
+async function chooseBakDir(){
+  try {
+    const d = await window.showDirectoryPicker({mode:"readwrite", id:"az-backup"});
+    bakDirH = d; await idbSet("kv", "bakdir", d); lsSet("az-autobak", null);
+    toast("Sicherungsordner gewählt"); renderStorage(); autoBackup();
+  } catch(e){ if (e.name !== "AbortError") toast("Ordner konnte nicht gewählt werden."); }
+}
+
+/* ---- Gemeinsamer Abgleich ---- */
+const PROVIDERS = {file:FILE, gdrive:GDRIVE, dropbox:DROPBOX};
 function merge(a, b){
   b = normalize(b);
   const m = new Map();
@@ -1014,30 +1317,161 @@ function merge(a, b){
     hol:(a.hol.fetched >= b.hol.fetched ? a : b).hol,
     days:(() => { const o = {...a.days}; Object.entries(b.days || {}).forEach(([k,v]) => { if (!o[k] || (v.upd||0) > (o[k].upd||0)) o[k] = v; }); return o; })()});
 }
+async function updateStatus(){   // zeigt den Zustand des aktiven Ziels; liefert den Anbieter, wenn er bereit ist
+  const m = getMode();
+  if (m === "local"){ setStatus("lokal"); return null; }
+  const P = PROVIDERS[m], r = await P.ready();
+  if (r !== true){ setStatus(r.msg, r.click || (r.msg === "lokal" ? null : () => showTab("set", "storagecard"))); return null; }
+  return P;
+}
 let syncing = false, again = false, timer = null;
 function queueSync(){ clearTimeout(timer); timer = setTimeout(sync, 1500); }
 async function sync(){
   if (syncing){ again = true; return; }
-  if (!token()){ showStatus(); return; }
-  syncing = true; setStatus("synchronisiere …");
+  syncing = true;
   try {
-    const id = await fileId();
-    const r = await api(`${API}/${id}?alt=media`);
-    if (!r.ok) throw new Error(r.status);
-    const txt = await r.text(); if (txt.trim()) data = merge(data, JSON.parse(txt));
-    persist();
-    const w = await api(`${UP}/${id}?uploadType=media`, {method:"PATCH", headers:{"Content-Type":"application/json"}, body:JSON.stringify(data, null, 1)});
-    if (!w.ok) throw new Error(w.status);
-    setStatus("✓ Google Drive " + new Date().toLocaleTimeString("de-DE").slice(0,5));
-    if (!document.querySelector("#set:not([hidden])")) render();   // Eingaben in den Einstellungen nicht überschreiben
-  } catch(e){ setStatus("offline – lokal gespeichert"); showStatus(); }
-  syncing = false; if (again){ again = false; sync(); }
+    const P = await updateStatus(); if (!P) return;
+    setStatus("synchronisiere …");
+    try {
+      const txt = await P.read();
+      if (txt && txt.trim()) data = merge(data, JSON.parse(txt));
+      persist();
+      await P.write(JSON.stringify(data, null, 1));
+      setStatus(`✓ ${P.label} ${hhmm()}`);
+      if (!document.querySelector("#set:not([hidden])")) render();   // Eingaben in den Einstellungen nicht überschreiben
+      if (P === FILE) autoBackup();
+    } catch(e){ if (e.auth) await updateStatus(); else setStatus("offline – lokal gespeichert"); }
+  } catch(e){ setStatus("offline – lokal gespeichert"); }
+  finally { syncing = false; if (again){ again = false; sync(); } }
 }
+
+/* ---- Sicherungen ---- */
+function downloadBackup(){
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(new Blob([JSON.stringify(data, null, 1)], {type:"application/json"}));
+  a.download = `arbeitszeit-sicherung-${todayIso()}.json`;
+  document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 5000);
+  lsSet("az-lastbak", String(Date.now())); renderBackupHint(); renderStorage(); toast("Sicherung gespeichert");
+}
+const validBackup = o => !!o && typeof o === "object" && Array.isArray(o.entries) && !!o.settings && typeof o.settings === "object";
+async function loadBackupFile(inp){
+  const f = inp.files && inp.files[0]; inp.value = ""; if (!f) return;
+  let o = null; try { o = JSON.parse(await f.text()); } catch(e){}
+  if (!validBackup(o)){ alert("Diese Datei ist keine gültige Sicherung der Arbeitszeit-App. Bitte eine Datei wählen, die mit „Sicherung speichern“ erstellt wurde."); return; }
+  const d = document.getElementById("bdlg");
+  document.getElementById("bdtext").textContent = `„${f.name}“ enthält ${o.entries.filter(e => !e.del).length} Einträge. Zusammenführen ergänzt deine Daten, Ersetzen überschreibt alles auf diesem Gerät.`;
+  d.onclose = async () => {
+    const v = d.returnValue;
+    if (v === "merge"){ await makeRestorePoint("pre"); data = merge(data, o); save(); renderStorage(); toast("Sicherung zusammengeführt"); }
+    else if (v === "replace"){
+      if (!confirm("Wirklich alle Daten auf diesem Gerät durch die Sicherung ersetzen? Der aktuelle Stand wird vorher als Wiederherstellungspunkt gesichert.")) return;
+      await makeRestorePoint("pre"); forceState(o); toast("Daten durch die Sicherung ersetzt");
+    }
+  };
+  d.returnValue = ""; d.showModal();
+}
+/* Stand übernehmen, der sich auch gegen Cloud-Daten durchsetzt: alle upd = jetzt,
+   fehlende Einträge werden als gelöscht markiert, fehlende Tagesausnahmen zurückgesetzt */
+function forceState(target){
+  const now = Date.now(), cur = data, t = normalize(JSON.parse(JSON.stringify(target)));
+  const ids = new Set(t.entries.map(e => e.id));
+  t.entries.forEach(e => e.upd = now);
+  cur.entries.forEach(e => { if (!ids.has(e.id)) t.entries.push({...e, del:true, upd:now}); });
+  Object.keys(cur.days).forEach(k => { if (!t.days[k]) t.days[k] = {off:[], sick:null}; });
+  Object.values(t.days).forEach(d => d.upd = now);
+  t.settings.upd = now;
+  t.running = {...cur.running, upd:now};   // laufende Erfassung des Geräts behalten
+  data = t; planDraft = null; editFrom = null; save(); renderStorage();
+}
+async function autoBackup(){   // Dateimodus: täglich eine Sicherung im Sicherungsordner, 14 behalten
+  if (!bakDirH || lsGet("az-autobak") === todayIso()) return;
+  try {
+    if (!(await perm(bakDirH, false))) return;
+    const fh = await bakDirH.getFileHandle(`arbeitszeit-${todayIso()}.json`, {create:true});
+    const w = await fh.createWritable(); await w.write(JSON.stringify(data, null, 1)); await w.close();
+    const names = [];
+    for await (const [n, h] of bakDirH.entries()) if (h.kind === "file" && /^arbeitszeit-\d{4}-\d\d-\d\d\.json$/.test(n)) names.push(n);
+    names.sort().reverse();
+    for (const n of names.slice(14)) await bakDirH.removeEntry(n);
+    lsSet("az-autobak", todayIso()); lsSet("az-lastbak", String(Date.now())); renderStorage();
+  } catch(e){}
+}
+function renderBackupHint(){
+  const el = document.getElementById("bakhint"); if (!el) return;
+  const last = +lsGet("az-lastbak") || 0, days = last ? Math.floor((Date.now() - last) / 86400000) : null;
+  const show = getMode() === "local" && data.entries.some(e => !e.del) && (+lsGet("az-baksnooze") || 0) < Date.now() && (!last || days >= 7);
+  el.hidden = !show;
+  if (show) document.getElementById("bakhinttext").textContent = last ? `Letzte Sicherung vor ${days} Tagen – jetzt sichern?` : "Du hast noch keine Sicherung – jetzt sichern?";
+}
+function snoozeBackup(){ lsSet("az-baksnooze", String(Date.now() + 86400000)); renderBackupHint(); }
+
+/* ---- Wiederherstellungspunkte (IndexedDB): täglich einer, 7 Tage; dazu bis zu 3 vor dem Wiederherstellen/Laden ---- */
+async function makeRestorePoint(kind){
+  try {
+    const now = Date.now(), key = kind === "day" ? "day-" + todayIso() : "pre-" + now;
+    await idbSet("restore", key, {ts:now, kind, n:data.entries.filter(e => !e.del).length, data:JSON.parse(JSON.stringify(data))});
+    const keys = (await idbKeys("restore")).map(String);
+    const days = keys.filter(k => k.startsWith("day-")).sort().reverse();
+    const pres = keys.filter(k => k.startsWith("pre-")).sort((a,b) => b.slice(4) - a.slice(4));
+    for (const k of days.slice(7).concat(pres.slice(3))) await idbDel("restore", k);
+  } catch(e){}
+}
+async function dailyRestorePoint(){ try { if (!(await idbGet("restore", "day-" + todayIso()))) await makeRestorePoint("day"); } catch(e){} }
+async function renderRestore(){
+  const el = document.getElementById("restorelist"); if (!el) return;
+  try {
+    const items = [];
+    for (const k of (await idbKeys("restore")).map(String)){ const v = await idbGet("restore", k); if (v) items.push({k, ts:v.ts, kind:v.kind, n:v.n}); }
+    items.sort((a,b) => b.ts - a.ts);
+    el.innerHTML = items.length ? items.map(i => `<div class="ver"><span>${new Date(i.ts).toLocaleString("de-DE").slice(0,-3)}${i.kind === "pre" ? ' <small class="hint">(vor dem Wiederherstellen/Laden)</small>' : ""}<br><small class="hint">${i.n} ${i.n === 1 ? "Eintrag" : "Einträge"}</small></span>
+      <button type="button" class="btn sec" style="padding:6px 10px" onclick="restorePoint('${i.k}')">Wiederherstellen</button></div>`).join("")
+      : '<p class="hint">Noch keine Stände gespeichert.</p>';
+  } catch(e){ el.innerHTML = '<p class="hint">In diesem Browser nicht verfügbar.</p>'; }
+}
+async function restorePoint(k){
+  const v = await idbGet("restore", k); if (!v) return;
+  if (!confirm(`Stand vom ${new Date(v.ts).toLocaleString("de-DE").slice(0,-3)} (${v.n} ${v.n === 1 ? "Eintrag" : "Einträge"}) wiederherstellen?\n\nDer aktuelle Stand wird vorher gesichert, du kannst das also rückgängig machen.`)) return;
+  await makeRestorePoint("pre"); forceState(v.data); toast("Stand wiederhergestellt");
+}
+
+/* ---- Karte „Datenspeicherung“ ---- */
+function fileSub(){
+  return (fileH ? `<span class="hint">Verbunden: <b>${esc(fileH.name)}</b></span><button type="button" class="btn sec" onclick="chooseFile(false)">Andere Datei wählen</button>`
+                : `<button type="button" class="btn" onclick="chooseFile(false)">Neue Datei anlegen</button>`)
+    + `<button type="button" class="btn sec" onclick="chooseFile(true)">Vorhandene Datei öffnen</button>`
+    + (typeof window.showDirectoryPicker === "function" ? `<button type="button" class="btn sec" onclick="chooseBakDir()">${bakDirH ? "Anderen Sicherungsordner wählen" : "Sicherungsordner wählen"}</button>` : "")
+    + `<span class="hint">Tipp: Liegt die Datei in deinem OneDrive- oder Dropbox-Ordner, wird sie vom jeweiligen PC-Programm automatisch mitsynchronisiert.</span>`;
+}
+function renderStorage(){
+  const el = document.getElementById("storageopts"); if (!el) return;
+  const m = getMode();
+  const opt = (k, title, desc, sub, dis) => `<label class="opt2 ${dis ? "dis" : ""}"><input type="radio" name="smode" value="${k}" ${m === k ? "checked" : ""} ${dis ? "disabled" : ""} onchange="setMode('${k}')">
+    <span style="flex:1"><b style="font-weight:600">${title}</b><br><small class="hint">${desc}</small>${m === k && sub ? `<div class="sub">${sub}</div>` : ""}</span></label>`;
+  let h = opt("local", MODES.local, "Ohne Anmeldung. Denk an regelmäßige Sicherungen.");
+  if (fileSupported()) h += opt("file", MODES.file, "Eine Datei, die du selbst wählst (Windows mit Chrome oder Edge).", fileSub());
+  const gc = lsGet("gd-connected") === "1", gOk = !CLIENT_ID.startsWith("HIER");
+  h += opt("gdrive", MODES.gdrive, !gOk ? "Noch nicht eingerichtet." : gc ? "Verbunden. Datei: Google Drive › Arbeitszeit › arbeitszeit.json" : "Abgleich über dein Google-Konto, auf allen Geräten.",
+    gc ? `<button type="button" class="btn sec" onclick="gLogout()">Abmelden</button>` : `<button type="button" class="btn" onclick="gLogin()">Mit Google Drive verbinden</button>`, !gOk);
+  const dOk = dropboxReady(), dc = !!dbxTok();
+  h += opt("dropbox", MODES.dropbox, !dOk ? "Noch nicht eingerichtet." : dc ? "Verbunden. Datei: Dropbox › Apps › … › arbeitszeit.json" : "Abgleich über dein Dropbox-Konto, auf allen Geräten.",
+    dc ? `<button type="button" class="btn sec" onclick="dbxLogout()">Abmelden</button>` : `<button type="button" class="btn" onclick="dbxLogin()">Mit Dropbox verbinden</button>`, !dOk);
+  el.innerHTML = h;
+  const last = +lsGet("az-lastbak") || 0;
+  document.getElementById("baklast").textContent = "Letzte Sicherung: " + (last ? new Date(last).toLocaleString("de-DE").slice(0,-3) : "noch keine");
+  document.getElementById("autobak").textContent = m !== "file" ? "" : bakDirH
+    ? `Automatische tägliche Sicherung im Ordner „${bakDirH.name}“ (die letzten 14 bleiben).` : "Keine automatische Sicherung: Wähle oben einen Sicherungsordner.";
+  if (!document.getElementById("set").hidden) renderRestore();
+}
+
+/* ---- Start ---- */
 document.addEventListener("visibilitychange", () => { if (!document.hidden){ sync(); checkForgotten(); } });
 setInterval(sync, 60000);
-
 (async () => {
+  await dbxHandleRedirect();
+  await loadHandles();
+  document.getElementById("ver").textContent = VERSION;
   render(); sync(); checkForgotten();
+  dailyRestorePoint();
   if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js");
 })();
 </script>
