@@ -197,6 +197,7 @@ dialog{border:0;border-radius:12px;width:min(92vw,420px);background:var(--card);
 <li><strong>Als CSV exportieren:</strong> Öffnet sich in Excel, z. B. zum Ausdrucken oder Abgeben.</li>
 </ul>
 <p><strong>So wird das Soll berechnet:</strong> Arbeitstage im Schuljahr minus Feiertage und Urlaubstage ergeben das Jahres-Soll. Es wird auf die Schultage verteilt, weil Lehrkräfte die Ferienzeit in den Schulwochen „vorarbeiten“. Deshalb ist dein Soll an Schultagen höher als bei einem normalen Arbeitstag, und in den Ferien ist es null.</p>
+<p><strong>Arbeitest du auch in den Ferien?</strong> Setze in den Einstellungen den Haken „Ferientage ins Soll einberechnen“ und trage ein, wie viele Stunden du an einem Ferientag ohne Urlaub im Schnitt arbeitest (z. B. 2,5). Die App zieht diese Ferienstunden vom Soll der Schultage ab und verteilt sie gleichmäßig auf alle Ferientage. Wo dein Urlaub liegt, musst du nicht eintragen: An Urlaubstagen entsteht ein kleines Minus, an Arbeitstagen in den Ferien ein Plus, am Ende der Ferien gleicht sich das aus. Die Einstellungen zeigen dir direkt, wie viel Soll ein Schultag und ein Ferientag dann haben.</p>
 
 <h2>5. Weitere Funktionen</h2>
 <ul>
@@ -221,7 +222,7 @@ dialog{border:0;border-radius:12px;width:min(92vw,420px);background:var(--card);
 </thead>
 <tbody>
 <tr>
-<td><strong>Nur auf diesem Gerät</strong></td>
+<td><strong>Lokal</strong><br>(nur auf diesem Gerät)</td>
 <td>Ausprobieren, ein einziges Gerät</td>
 <td>Keine Anmeldung nötig. Mach regelmäßig eine Sicherung, sonst sind die Daten weg, wenn das Gerät verloren geht.</td>
 </tr>
@@ -248,7 +249,7 @@ dialog{border:0;border-radius:12px;width:min(92vw,420px);background:var(--card);
 <li><strong>Sicherung speichern:</strong> lädt alle Daten als Datei <code>arbeitszeit-sicherung-JJJJ-MM-TT.json</code> herunter (auf dem Handy in den Download-Ordner).</li>
 <li><strong>Sicherung laden:</strong> Datei wählen, dann <strong>„Zusammenführen“</strong> (empfohlen, nichts geht verloren) oder <strong>„Ersetzen“</strong> (alle Daten auf diesem Gerät werden durch die Sicherung ersetzt).</li>
 <li><strong>Automatisch (Datei auf dem PC):</strong> Wählst du einen <strong>Sicherungsordner</strong>, legt die App jeden Tag beim ersten Öffnen eine Sicherung <code>arbeitszeit-JJJJ-MM-TT.json</code> an und behält die letzten 14.</li>
-<li><strong>Erinnerung:</strong> Bei „Nur auf diesem Gerät“ erinnert dich die App auf <em>Erfassen</em>, wenn die letzte Sicherung älter als 7 Tage ist.</li>
+<li><strong>Erinnerung:</strong> Bei „Lokal“ erinnert dich die App auf <em>Erfassen</em>, wenn die letzte Sicherung älter als 7 Tage ist.</li>
 </ul>
 <p><strong>Wiederherstellen</strong></p>
 <p>Die App merkt sich jeden Tag beim ersten Öffnen automatisch einen Stand und behält die letzten 7 Tage. Unter <em>Datenspeicherung → Wiederherstellen</em> wählst du einen Stand aus. Vorher wird der aktuelle Stand gesichert, du kannst das also rückgängig machen. Der wiederhergestellte Stand setzt sich auch in der Cloud durch.</p>
@@ -315,7 +316,13 @@ dialog{border:0;border-radius:12px;width:min(92vw,420px);background:var(--card);
    <label>Wochenarbeitszeit bei Vollzeit (Std.)</label><input type="number" id="weekly" step="0.5" min="0">
    <label>Beschäftigungsumfang (%)</label><input type="number" id="umfang" min="0" max="100">
    <label>Urlaubstage pro Jahr</label><input type="number" id="urlaub" min="0" max="60">
-   <div class="hint">Berechnung: Jahres-Soll = (Arbeitstage Mo–Fr im Schuljahr − Feiertage − Urlaubstage) × Tages-Soll. Dieses Jahres-Soll wird auf die Schultage verteilt, weil Lehrkräfte die unterrichtsfreie Zeit über die Schulwochen ausgleichen. Die Schulferien werden dafür automatisch geladen.</div>
+   <div class="hint">Berechnung: Jahres-Soll = (Arbeitstage Mo–Fr im Schuljahr − Feiertage − Urlaubstage) × Tages-Soll. Ohne Haken unten wird es ganz auf die Schultage verteilt, weil Lehrkräfte die unterrichtsfreie Zeit über die Schulwochen ausgleichen. Die Schulferien werden dafür automatisch geladen.</div>
+   <label style="margin-top:14px"><input type="checkbox" id="feron" onchange="ferPreview()">Ferientage ins Soll einberechnen</label>
+   <div id="ferbox">
+    <label>Durchschnittliche Arbeitszeit pro Ferientag ohne Urlaub (Std.)</label><input type="number" id="ferh" step="0.25" min="0" max="10" oninput="ferPreview()">
+    <div class="hint">Wo dein Urlaub liegt, ist egal: Die App verteilt die Ferienstunden gleichmäßig auf alle Ferientage. Das Jahres-Soll bleibt gleich, Schultage bekommen entsprechend weniger.</div>
+   </div>
+   <p class="hint" id="ferprev" style="font-weight:600"></p>
   </div>
   <div class="card">
    <b>Schulferien Sachsen-Anhalt (automatisch)</b>
@@ -377,7 +384,7 @@ dialog{border:0;border-radius:12px;width:min(92vw,420px);background:var(--card);
 /* ===== Konfiguration: hier die Anwendungs-ID aus dem Azure-Portal eintragen ===== */
 const DROPBOX_KEY = "xjhyr1ko1kx5y7h";   // Dropbox-App-Key (App-Konsole → Settings → App key)
 const CLIENT_ID = "676671418561-u8sq0lmimfsnqa1oqno6vl92d0d1imcj.apps.googleusercontent.com";   // Google OAuth-Client-ID (…apps.googleusercontent.com)
-const VERSION = "1.3";
+const VERSION = "1.4";
 
 const CATS = {U:"Unterricht", V:"Vorbereitung", K:"Korrekturen", KF:"Konferenz", E:"Elternarbeit", O:"Organisation/Sonstiges", S:"Präsenz in der Schule"};
 const LABEL = {...CATS, P:"Pause (zählt nicht)", TT:"Unterricht (Stundenplan)"};
@@ -683,6 +690,18 @@ function delCustom(id){
   const c = customList().find(x => x.id === id); if (!c || !confirm(`„${c.name}“ löschen?`)) return;
   setCustom(customList().filter(x => x.id !== id));
 }
+/* Vorschau für die Ferien-Option (rechnet mit den Formularwerten, ohne zu speichern) */
+function ferPreview(){
+  const on = document.getElementById("feron").checked, v = id => document.getElementById(id).value;
+  document.getElementById("ferbox").hidden = !on;
+  const y = syYear(new Date());
+  const tmp = {...data.settings, weekly:+v("weekly")||0, umfang:+v("umfang")||0, urlaub:+v("urlaub")||0, ferOn:on, ferH:+String(v("ferh")).replace(",", ".")||0};
+  const r = sollRates(y, tmp);
+  const noHol = !data.hol.ranges.length && !(data.settings.free || "").trim();
+  document.getElementById("ferprev").textContent = `Ergibt für ${y}/${String(y+1).slice(2)}: Schultag ${hm(r.school)} · Ferientag ${hm(r.ferien)}`
+    + (r.capped ? " – Hinweis: mehr Ferienstunden, als ins Jahres-Soll passen; begrenzt." : "")
+    + (noHol ? " (Ferien noch nicht geladen – Werte ungenau)" : "");
+}
 /* Personalrat: Adresse in settings.prMail (wird mit synchronisiert), Standard unten */
 const PR_DEFAULT = "schulpersonalrat@sks-goethe-merseburg.bildung-lsa.de";
 const prMail = () => data.settings.prMail || PR_DEFAULT;
@@ -775,17 +794,28 @@ function ttMinutes(from, to){   // nur bis heute gutschreiben
 
 /* ===== Soll ===== */
 const sollCache = {};
-function sollPerSchoolDay(y){
-  const s = data.settings, key = [y, s.weekly, s.umfang, s.urlaub, s.free, data.hol.fetched].join("|");
+/* Soll je Tag im Schuljahr y (Minuten). Jahres-Soll = (Arbeitstage − Feiertage − Urlaub) × Wochenstunden/5 × Umfang.
+   Ohne Ferien-Option: komplett auf die Schultage verteilt. Mit Option „Ferientage ins Soll einberechnen“:
+   (Ferientage − Urlaubstage) × Stunden pro Ferientag gehen in die Ferien, gleichmäßig auf alle Ferientage verteilt
+   (wo der Urlaub liegt, ist egal); der Rest auf die Schultage. */
+function sollRates(y, s){
+  s = s || data.settings;
+  const key = [y, s.weekly, s.umfang, s.urlaub, s.free, data.hol.fetched, s.ferOn ? 1 : 0, s.ferH].join("|");
   if (sollCache[key] !== undefined) return sollCache[key];
   let W = 0, S = 0;
   eachDay(new Date(y,7,1), new Date(y+1,7,1), d => { if (isWorkday(d)){ W++; if (isSchoolDay(d)) S++; } });
-  const year = Math.max(0, W - (+s.urlaub||0)) * (+s.weekly||0) * 60 / 5 * (+s.umfang||0) / 100;
-  return sollCache[key] = S ? year / S : 0;
+  const F = W - S, year = Math.max(0, W - (+s.urlaub||0)) * (+s.weekly||0) * 60 / 5 * (+s.umfang||0) / 100;
+  const want = s.ferOn ? Math.max(0, F - (+s.urlaub||0)) * Math.max(0, +s.ferH||0) * 60 : 0, fer = Math.min(year, want);
+  return sollCache[key] = {school: S ? (year - fer) / S : 0, ferien: F ? fer / F : 0, capped: want > year, S, F, year};
 }
+const sollPerSchoolDay = y => sollRates(y).school;
 function sollMinutes(from, to){
   const s = data.settings; let sum = 0;
-  eachDay(from, to, d => { if (iso(d) >= s.startDate && isSchoolDay(d)) sum += sollPerSchoolDay(syYear(d)) * (1 - sickShare(d)); });
+  eachDay(from, to, d => {
+    if (iso(d) < s.startDate || !isWorkday(d)) return;
+    const r = sollRates(syYear(d));
+    sum += (isSchoolDay(d) ? r.school : r.ferien) * (1 - sickShare(d));
+  });
   return sum;
 }
 
@@ -935,6 +965,9 @@ function render(){
   document.getElementById("weekly").value = S.weekly;
   document.getElementById("umfang").value = S.umfang;
   document.getElementById("urlaub").value = S.urlaub;
+  document.getElementById("feron").checked = !!S.ferOn;
+  document.getElementById("ferh").value = S.ferH === undefined || S.ferH === "" ? 2.5 : S.ferH;
+  ferPreview();
   document.getElementById("sdate").value = S.startDate;
   renderFree(); renderLinks(); renderCustom(); renderPr();
   renderHol();
@@ -1071,7 +1104,7 @@ async function saveSettings(){
     V.sort((a,b) => a.from < b.from ? -1 : 1);
     editFrom = null;
   }
-  data.settings = {versions:V, weekly:+v("weekly") || 0, umfang:+v("umfang") || 0, urlaub:+v("urlaub") || 0,
+  data.settings = {versions:V, weekly:+v("weekly") || 0, umfang:+v("umfang") || 0, urlaub:+v("urlaub") || 0, ferOn:document.getElementById("feron").checked, ferH:Math.max(0, +String(v("ferh")).replace(",", ".") || 0),
     startDate:v("sdate") || S.startDate, free:S.free, links:S.links, custom:S.custom, prMail:S.prMail, upd:Date.now()};
   save(); toast(changed ? "Stundenplan und Einstellungen gespeichert" : "Einstellungen gespeichert");
 }
@@ -1102,7 +1135,7 @@ function setStatus(t, onclick){
 }
 const hhmm = () => new Date().toLocaleTimeString("de-DE").slice(0,5);
 const todayIso = () => iso(new Date());
-const MODES = {local:"Nur auf diesem Gerät", file:"Datei auf diesem PC", gdrive:"Google Drive", dropbox:"Dropbox"};
+const MODES = {local:"Lokal", file:"Datei auf diesem PC", gdrive:"Google Drive", dropbox:"Dropbox"};
 const fileSupported = () => typeof window.showSaveFilePicker === "function";
 const dropboxReady = () => !DROPBOX_KEY.startsWith("HIER");
 function getMode(){   // nur im Gerät gespeichert, nicht in data
@@ -1447,7 +1480,7 @@ function renderStorage(){
   const m = getMode();
   const opt = (k, title, desc, sub, dis) => `<label class="opt2 ${dis ? "dis" : ""}"><input type="radio" name="smode" value="${k}" ${m === k ? "checked" : ""} ${dis ? "disabled" : ""} onchange="setMode('${k}')">
     <span style="flex:1"><b style="font-weight:600">${title}</b><br><small class="hint">${desc}</small>${m === k && sub ? `<div class="sub">${sub}</div>` : ""}</span></label>`;
-  let h = opt("local", MODES.local, "Ohne Anmeldung. Denk an regelmäßige Sicherungen.");
+  let h = opt("local", MODES.local, "Nur auf diesem Gerät, ohne Anmeldung. Denk an regelmäßige Sicherungen.");
   if (fileSupported()) h += opt("file", MODES.file, "Eine Datei, die du selbst wählst (Windows mit Chrome oder Edge).", fileSub());
   const gc = lsGet("gd-connected") === "1", gOk = !CLIENT_ID.startsWith("HIER");
   h += opt("gdrive", MODES.gdrive, !gOk ? "Noch nicht eingerichtet." : gc ? "Verbunden. Datei: Google Drive › Arbeitszeit › arbeitszeit.json" : "Abgleich über dein Google-Konto, auf allen Geräten.",

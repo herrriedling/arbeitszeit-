@@ -63,6 +63,8 @@ Mit dieser App erfasst du deine Arbeitszeit als Lehrkraft schnell per Knopfdruck
 
 **So wird das Soll berechnet:** Arbeitstage im Schuljahr minus Feiertage und Urlaubstage ergeben das Jahres-Soll. Es wird auf die Schultage verteilt, weil Lehrkräfte die Ferienzeit in den Schulwochen „vorarbeiten“. Deshalb ist dein Soll an Schultagen höher als bei einem normalen Arbeitstag, und in den Ferien ist es null.
 
+**Arbeitest du auch in den Ferien?** Setze in den Einstellungen den Haken „Ferientage ins Soll einberechnen“ und trage ein, wie viele Stunden du an einem Ferientag ohne Urlaub im Schnitt arbeitest (z. B. 2,5). Die App zieht diese Ferienstunden vom Soll der Schultage ab und verteilt sie gleichmäßig auf alle Ferientage. Wo dein Urlaub liegt, musst du nicht eintragen: An Urlaubstagen entsteht ein kleines Minus, an Arbeitstagen in den Ferien ein Plus, am Ende der Ferien gleicht sich das aus. Die Einstellungen zeigen dir direkt, wie viel Soll ein Schultag und ein Ferientag dann haben.
+
 ---
 
 ## 5. Weitere Funktionen
@@ -83,7 +85,7 @@ Deine Daten liegen **immer auch auf dem Gerät**, deshalb funktioniert die App o
 
 | Speicherart | Wofür | Hinweise |
 |---|---|---|
-| **Nur auf diesem Gerät** | Ausprobieren, ein einziges Gerät | Keine Anmeldung nötig. Mach regelmäßig eine Sicherung, sonst sind die Daten weg, wenn das Gerät verloren geht. |
+| **Lokal** (nur auf diesem Gerät) | Ausprobieren, ein einziges Gerät | Keine Anmeldung nötig. Mach regelmäßig eine Sicherung, sonst sind die Daten weg, wenn das Gerät verloren geht. |
 | **Datei auf diesem PC** | Windows mit Chrome oder Edge | Du wählst eine Datei, z. B. `arbeitszeit.json`. Liegt sie in deinem OneDrive- oder Dropbox-Ordner, synchronisiert das PC-Programm sie automatisch mit. |
 | **Google Drive** | Mehrere Geräte | Datei: *Google Drive → Arbeitszeit → arbeitszeit.json*. Die App sieht nur diese eine Datei. |
 | **Dropbox** | Mehrere Geräte | Datei: *Dropbox → Apps → (App-Name) → arbeitszeit.json*. Die App sieht nur diesen Ordner. |
@@ -95,7 +97,7 @@ Es ist immer nur **ein** Ziel aktiv. Wechselst du, bleiben die Daten auf dem Ger
 - **Sicherung speichern:** lädt alle Daten als Datei `arbeitszeit-sicherung-JJJJ-MM-TT.json` herunter (auf dem Handy in den Download-Ordner).
 - **Sicherung laden:** Datei wählen, dann **„Zusammenführen“** (empfohlen, nichts geht verloren) oder **„Ersetzen“** (alle Daten auf diesem Gerät werden durch die Sicherung ersetzt).
 - **Automatisch (Datei auf dem PC):** Wählst du einen **Sicherungsordner**, legt die App jeden Tag beim ersten Öffnen eine Sicherung `arbeitszeit-JJJJ-MM-TT.json` an und behält die letzten 14.
-- **Erinnerung:** Bei „Nur auf diesem Gerät“ erinnert dich die App auf *Erfassen*, wenn die letzte Sicherung älter als 7 Tage ist.
+- **Erinnerung:** Bei „Lokal“ erinnert dich die App auf *Erfassen*, wenn die letzte Sicherung älter als 7 Tage ist.
 
 **Wiederherstellen**
 
